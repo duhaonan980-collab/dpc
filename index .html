@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>电瓶车续航助手</title>
+<style>
+/* --- iOS 18 Specific Styles --- */
+:root {
+    --ios-bg: #F2F2F7; 
+    --ios-card-bg: #FFFFFF;
+    --ios-text-primary: #000000;
+    --ios-text-secondary: #8E8E93;
+    --ios-blue: #007AFF;
+    --ios-green: #34C759;
+    --ios-yellow: #FFCC00;
+    --ios-red: #FF3B30;
+    --ios-gray: #C7C7CC;
+    --ios-border: #D1D1D6;
+    --ios-radius-main: 12px;
+    --ios-radius-card: 20px;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background-color: var(--ios-bg);
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    color: var(--ios-text-primary);
+}
+
+/* --- App Container & Pages --- */
+.app-container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: var(--ios-card-bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    position: relative;
+    padding-bottom: calc(65px + env(safe-area-inset-bottom)); /* Leave space for navigation */
+}
+
+.page {
+    display: none;
+    padding: 20px;
+    animation: fadeIn 0.2s ease-out;
+}
+.page.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+h2 {
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+/* --- Big Display --- */
+.big-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px 0 15px;
+    height: 60px;
+    gap: 8px;
+}
+.big {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--ios-text-primary);
+    letter-spacing: -1px;
+}
+
+/* 独立的设置按钮，美化为 iOS 次级按钮样式 */
+.setting-btn {
+    background: #E5E5EA;
+    color: var(--ios-blue);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.2s;
+    margin-top: 6px;
+}
+.setting-btn:active { background: #D1D1D6; }
+
+.edit-box { display: none; align-items: center; gap: 10px; }
+.edit-box input {
+    width: 140px;
+    font-size: 32px;
+    font-weight: 700;
+    padding: 8px;
+    text-align: center;
+    border-radius: var(--ios-radius-main);
+    border: 1px solid var(--ios-border);
+    background-color: var(--ios-bg);
+    color: var(--ios-text-primary);
+}
+.edit-box input:focus {
+    outline: none;
+    border-color: var(--ios-blue);
+}
+
+.edit-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+.btn-ok { background-color: var(--ios-green); }
+.btn-no { background-color: var(--ios-red); }
+
+.bar {
+    height: 10px;
+    background: #E5E5EA;
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 10px 0 25px;
+}
+#fill {
+    height: 100%;
+    width: 100%;
+    background: var(--ios-green);
+    transition: width 0.4s ease-out, background-color 0.3s;
+}
+
+label {
+    font-size: 13px;
+    color: var(--ios-text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* --- Roller (iOS Picker Style) --- */
+.roller-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0 20px;
+}
+.roller-container {
+    display: inline-flex;
+    background: #F2F2F7;
+    padding: 6px;
+    border-radius: 14px;
+    border: 0.5px solid var(--ios-border);
+}
+.roller-digit-box {
+    position: relative;
+    width: 38px;
+    height: 50px;
+    overflow-y: auto;
+    background: #FFFFFF;
+    border-radius: 8px;
+    margin: 0 2px;
+    border: 0.5px solid var(--ios-border);
+    scrollbar-width: none;
+    scroll-snap-type: y mandatory;
+}
+.roller-digit-box::-webkit-scrollbar { display: none; }
+.roller-item {
+    height: 50px;
+    line-height: 50px;
+    text-align: center;
+    color: var(--ios-text-primary);
+    font-size: 28px;
+    font-family: -apple-system-monospaced, monospace;
+    font-weight: 600;
+    scroll-snap-align: start;
+}
+
+.roller-reset-btn {
+    background: #E5E5EA;
+    color: var(--ios-blue);
+    border: none;
+    border-radius: var(--ios-radius-main);
+    width: 55px;
+    height: 50px;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.roller-reset-btn:active { background: #D1D1D6; }
+
+.right-button-group { display: flex; gap: 8px; align-items: center; }
+.charge-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 15px;
+    border: 1px solid var(--ios-blue);
+    background: transparent;
+    color: var(--ios-blue);
+    border-radius: var(--ios-radius-main);
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+.charge-btn.active { background: var(--ios-blue); color: #ffffff; }
+
+/* --- Buttons --- */
+button.main-btn {
+    width: 100%;
+    padding: 16px;
+    font-size: 17px;
+    border: none;
+    border-radius: var(--ios-radius-main);
+    margin-top: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+}
+button.main-btn:active { opacity: 0.9; transform: scale(0.98); }
+.calc { background: var(--ios-blue); color: white; }
+.full { background: var(--ios-green); color: white; }
+.reset { background: #E5E5EA; color: var(--ios-red); margin-top: 15px !important; }
+
+/* --- Info Dashboard --- */
+.info {
+    margin-top: 25px;
+    font-size: 15px;
+    color: var(--ios-text-primary);
+    line-height: 1.5;
+    background: var(--ios-bg);
+    padding: 16px;
+    border-radius: var(--ios-radius-main);
+}
+.info div {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 0.5px solid rgba(0,0,0,0.05);
+}
+.info div:last-child { border-bottom: none; }
+.info span { font-weight: 600; }
+.warn { color: var(--ios-red); font-weight: 700 !important; margin-top: 8px; justify-content: center !important;}
+
+/* --- History List Layout --- */
+.history-list { font-size: 14px; color: var(--ios-text-primary); }
+.history-item {
+    background: #FFFFFF;
+    border-bottom: 0.5px solid var(--ios-border);
+    padding: 14px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+.history-item:last-child { border-bottom: none; }
+.history-content { flex: 1; }
+.history-time { font-size: 12px; color: var(--ios-text-secondary); font-weight: 600; margin-bottom: 4px; }
+.history-data { font-size: 14px; line-height: 1.4; }
+.history-data b { font-weight: 600; }
+
+.delete-log-btn {
+    background: transparent;
+    color: var(--ios-red);
+    border: none;
+    padding: 0;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* --- iOS 18 Bottom Tab Bar --- */
+.tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 600px;
+    height: 65px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 0.5px solid var(--ios-border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 999;
+}
+.tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--ios-text-secondary);
+    font-size: 10px;
+    font-weight: 500;
+    text-decoration: none;
+    width: 50%;
+    height: 100%;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+.tab-item .icon {
+    font-size: 22px;
+    margin-bottom: 2px;
+}
+.tab-item.active {
+    color: var(--ios-blue);
+}
+
+/* --- Modal Style --- */
+.modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.4); z-index: 1000; justify-content: center; align-items: flex-end;
+    padding-bottom: 20px;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+.modal-box {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 14px;
+    max-width: 350px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+.modal-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.modal-text { font-size: 13px; color: var(--ios-text-primary); margin-bottom: 20px; line-height: 1.4;}
+.modal-btns { display: flex; flex-direction: column; gap: 8px; }
+.modal-btn {
+    width: 100%; padding: 14px; border-radius: 12px; font-size: 17px; font-weight: 600; border: none; cursor: pointer;
+}
+.btn-cancel { background: #FFFFFF; color: var(--ios-blue); }
+.btn-confirm { background: #FFFFFF; color: var(--ios-red); font-weight: 700; }
+.modal-btn:active { background-color: #E5E5EA; }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <div id="page-assistant" class="page active">
+        <h2>🔋 电瓶车续航助手</h2>
+        <div class="big-container">
+            <div class="big" id="remain">60km</div>
+            <button class="setting-btn" id="setBtn" onclick="startEdit()">⚙️</button>
+            
+            <div class="edit-box" id="editBox">
+                <input id="maxInput" type="number" inputmode="numeric">
+                <button class="edit-btn btn-ok" onclick="saveMax()">✔</button>
+                <button class="edit-btn btn-no" onclick="cancelEdit()">✘</button>
+            </div>
+        </div>
+        <div class="bar"><div id="fill"></div></div>
+
+        <label>当前总里程</label>
+        <div class="roller-wrapper">
+            <div class="roller-container" id="odoContainer"></div>
+            <button class="roller-reset-btn" onclick="askReset('odo')">归零</button>
+        </div>
+
+        <label>充电时间</label>
+        <div class="roller-wrapper">
+            <div class="roller-container" id="hourContainer"></div>
+            <div class="right-button-group">
+                <button class="roller-reset-btn" onclick="askReset('hour')">归零</button>
+                <button class="charge-btn" id="btn-3h" onclick="setQuickHour(3)">3h</button>
+                <button class="charge-btn" id="btn-6h" onclick="setQuickHour(6)">6h</button>
+            </div>
+        </div>
+
+        <button class="main-btn calc" onclick="calc()">计算并保存</button>
+        <button class="main-btn full" onclick="full()">恢复满电</button>
+        <button class="main-btn reset" onclick="openModal()">重置数据</button>
+
+        <div class="info">
+            <div>上次总里程：<span id="last">-</span></div>
+            <div>本次骑行：<span id="used">0</span> km</div>
+            <div>当前剩余：<span id="left">60</span> km</div>
+            <div class="warn" id="msg"></div>
+        </div>
+    </div>
+
+    <div id="page-history" class="page">
+        <h2>📋 历史数据</h2>
+        <div class="history-list" id="historyList"></div>
+    </div>
+
+    <nav class="tab-bar">
+        <div class="tab-item active" id="tab-assistant" onclick="switchTab('assistant')">
+            <span class="icon">⚡</span>
+            <span>助手</span>
+        </div>
+        <div class="tab-item" id="tab-history" onclick="switchTab('history')">
+            <span class="icon">📜</span>
+            <span>历史</span>
+        </div>
+    </nav>
+</div>
+
+<div id="confirmModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title" id="confirmTitle">提示</div>
+        <div class="modal-text" id="confirmText">确定吗？</div>
+        <div class="modal-btns">
+            <button class="modal-btn btn-confirm" id="confirmActionBtn">确定</button>
+            <button class="modal-btn btn-cancel" onclick="closeConfirmModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let MAX = Number(localStorage.getItem("maxRange")) || 60;
+let lastOdo = localStorage.getItem("lastOdo") ? Number(localStorage.getItem("lastOdo")) : null;
+let remain = localStorage.getItem("remain") ? Number(localStorage.getItem("remain")) : MAX;
+let historyLog = JSON.parse(localStorage.getItem("historyLog") || "[]");
+let currentOdoRollerVal = Number(localStorage.getItem("currentOdoRollerVal")) || 0;
+let pendingAction = null;
+
+// --- Tab Switching Logic ---
+function switchTab(targetPage) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    
+    document.getElementById(`page-${targetPage}`).classList.add('active');
+    document.getElementById(`tab-${targetPage}`).classList.add('active');
+}
+
+function initRollers() {
+    createRollerBoxes(document.getElementById("odoContainer"), 5, 'odo');
+    createRollerBoxes(document.getElementById("hourContainer"), 1, 'hour');
+}
+
+function createRollerBoxes(parent, count, type) {
+    parent.innerHTML = "";
+    for (let i = count - 1; i >= 0; i--) {
+        let box = document.createElement("div");
+        box.className = "roller-digit-box";
+        box.id = `${type}-box-${i}`;
+        
+        for (let n = 0; n <= 9; n++) {
+            let div = document.createElement("div");
+            div.className = "roller-item";
+            div.innerText = n;
+            box.appendChild(div);
+        }
+        
+        box.addEventListener("scroll", () => {
+            if (type === 'hour') {
+                document.getElementById("btn-3h").classList.remove("active");
+                document.getElementById("btn-6h").classList.remove("active");
+            }
+            let val = Math.round(box.scrollTop / 50);
+            if (type === 'hour') {
+                if (val === 3) document.getElementById("btn-3h").classList.add("active");
+                if (val === 6) document.getElementById("btn-6h").classList.add("active");
+            } else {
+                setTimeout(() => {
+                    let odoVal = getRollerValue('odo', 5);
+                    localStorage.setItem("currentOdoRollerVal", odoVal);
+                }, 50);
+            }
+        });
+        parent.appendChild(box);
+    }
+}
+
+function getRollerValue(type, count) {
+    let val = 0;
+    for (let i = count - 1; i >= 0; i--) {
+        let box = document.getElementById(`${type}-box-${i}`);
+        if(!box) return 0;
+        let digit = Math.round(box.scrollTop / 50);
+        val = val * 10 + digit;
+    }
+    return val;
+}
+
+function setRollerValue(type, count, val) {
+    let valStr = String(val).padStart(count, '0');
+    for (let i = 0; i < count; i++) {
+        let box = document.getElementById(`${type}-box-${i}`);
+        if (box) box.scrollTop = Number(valStr[count - 1 - i]) * 50;
+    }
+    if (type === 'odo') {
+        localStorage.setItem("currentOdoRollerVal", val);
+    }
+}
+
+function setQuickHour(h) {
+    setRollerValue('hour', 1, h);
+}
+
+function askReset(target) {
+    openConfirmModal("确认归零", `确定将当前${target === 'odo' ? '里程' : '充电时间'}滚轮归零吗？`, () => {
+        if (target === 'odo') setRollerValue('odo', 5, 0);
+        else setRollerValue('hour', 1, 0);
+    });
+}
+
+function save() {
+    localStorage.setItem("lastOdo", lastOdo ?? "");
+    localStorage.setItem("remain", remain);
+    localStorage.setItem("maxRange", MAX);
+    localStorage.setItem("historyLog", JSON.stringify(historyLog));
+}
+
+function updateLastOdo() {
+    let found = historyLog.find(log => log.type === 'calc' && log.odo);
+    lastOdo = found ? found.odo : null;
+}
+
+function render() {
+    updateLastOdo();
+    // 【关键修复】顶部大数字现在跟随真实剩余续航变动，格式化为带一位小数的动态里程
+    document.getElementById("remain").innerText = Number(remain.toFixed(1)) + "km";
+    document.getElementById("last").innerText = lastOdo ?? "-";
+    
+    let percent = Math.max(0, Math.min(100, (remain / MAX) * 100));
+    let fill = document.getElementById("fill");
+    fill.style.width = percent + "%";
+    
+    if (percent > 40) {
+        fill.style.background = "var(--ios-green)";
+    } else if (percent > 20) {
+        fill.style.background = "var(--ios-yellow)";
+    } else {
+        fill.style.background = "var(--ios-red)";
+    }
+    document.getElementById("left").innerText = Number(remain.toFixed(1));
+
+    let listHtml = historyLog.length === 0 ? "<div style='color:var(--ios-text-secondary);text-align:center;margin-top:40px;font-size:15px;'>暂无历史记录</div>" : "";
+    historyLog.forEach(log => {
+        let typeText = log.type === 'calc' ? "⚡ 计算更新" : (log.type === 'full' ? "🟢 恢复满电" : "⚙️ 修改总续航");
+        listHtml += `<div class="history-item ${log.type === 'full' ? 'type-full' : (log.type === 'edit' ? 'type-edit' : '')}">
+            <div class="history-content">
+                <div class="history-time">${log.time}</div>
+                <div class="history-data">${typeText}<br/><b>剩余:</b> ${log.remain} km ${log.odo ? `| <b>总里程:</b> ${log.odo} km` : ''} ${log.used ? `| <b>骑行:</b> ${log.used} km` : ''} ${log.hour ? `| <b>充电:</b> ${log.hour}h` : ''}</div>
+            </div>
+            <button class="delete-log-btn" onclick="openDeleteModal('${log.id}')">删除</button>
+        </div>`;
+    });
+    document.getElementById("historyList").innerHTML = listHtml;
+}
+
+function calc() {
+    let odo = getRollerValue('odo', 5);
+    let hour = getRollerValue('hour', 1);
+    if (odo === 0 && hour === 0) return alert("请调整里程滚轮或选择充电时间");
+
+    document.getElementById("msg").innerText = "";
+    updateLastOdo();
+
+    let usedLog = null;
+    if (odo !== 0) {
+        if (lastOdo !== null && odo < lastOdo) {
+            openConfirmModal("里程输入错误", `当前总里程 (${odo} km) 不能小于上次记录 (${lastOdo} km)，请重新核对。`, null);
+            return;
+        }
+        if (lastOdo !== null) {
+            usedLog = Number((odo - lastOdo).toFixed(1));
+            remain -= usedLog;
+            document.getElementById("used").innerText = usedLog;
+        }
+        lastOdo = odo;
+    }
+    if (hour > 0) remain += hour * 10;
+    remain = Math.max(0, Math.min(MAX, remain));
+
+    historyLog.unshift({
+        id: Date.now() + Math.random().toString(36).substr(2, 5),
+        time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`,
+        type: 'calc', odo: odo || null, used: usedLog, hour: hour || null, remain: Number(remain.toFixed(1))
+    });
+    if (historyLog.length > 50) historyLog.pop();
+
+    setRollerValue('hour', 1, 0);
+    
+    save(); render();
+}
+
+function full() {
+    remain = MAX;
+    historyLog.unshift({ id: Date.now().toString(), time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`, type: 'full', remain: MAX });
+    save(); render();
+}
+
+function openConfirmModal(title, text, action) {
+    document.getElementById("confirmTitle").innerText = title;
+    document.getElementById("confirmText").innerText = text;
+    document.getElementById("confirmModal").style.display = "flex";
+    pendingAction = action;
+}
+function closeConfirmModal() { document.getElementById("confirmModal").style.display = "none"; }
+document.getElementById("confirmActionBtn").onclick = () => { if(pendingAction) pendingAction(); closeConfirmModal(); };
+
+function openModal() { openConfirmModal("提示", "确定要重置所有数据和历史记录吗？", confirmReset); }
+function openDeleteModal(id) { openConfirmModal("确认删除", "确认删除这条历史数据吗？删除后将不参与后续里程计算。", () => confirmDeleteLog(id)); }
+
+function confirmDeleteLog(id) {
+    let idx = historyLog.findIndex(log => log.id === id);
+    if (idx !== -1) {
+        historyLog.splice(idx, 1);
+        remain = historyLog.length === 0 ? MAX : historyLog[0].remain;
+        setRollerValue('hour', 1, 0);
+        save(); render();
+    }
+}
+function confirmReset() {
+    localStorage.clear(); lastOdo = null; MAX = 60; remain = MAX; historyLog = [];
+    document.getElementById("used").innerText = "0"; document.getElementById("msg").innerText = "";
+    setRollerValue('odo', 5, 0); setRollerValue('hour', 1, 0);
+    save(); render();
+}
+
+function startEdit() { 
+    document.getElementById("remain").style.display = "none"; 
+    document.getElementById("setBtn").style.display = "none"; 
+    document.getElementById("editBox").style.display = "flex"; 
+    document.getElementById("maxInput").value = MAX; 
+}
+
+function cancelEdit() { 
+    document.getElementById("editBox").style.display = "none"; 
+    document.getElementById("remain").style.display = "block"; 
+    document.getElementById("setBtn").style.display = "flex"; 
+}
+
+function saveMax() { 
+    let v = Number(document.getElementById("maxInput").value); 
+    if(v > 0) { 
+        MAX = v; 
+        remain = v; // 修改满电上限后默认恢复到新满电值
+        
+        historyLog.unshift({
+            id: Date.now().toString(),
+            time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`,
+            type: 'edit', remain: MAX
+        });
+
+        save(); 
+        render(); 
+    } 
+    cancelEdit(); 
+}
+
+initRollers();
+
+setTimeout(() => {
+    setRollerValue('odo', 5, currentOdoRollerVal);
+    setRollerValue('hour', 1, 0);
+}, 100);
+
+render();
+</script>
+</body>
+</html>
