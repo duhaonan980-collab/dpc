@@ -17,7 +17,7 @@
     --ios-red: #FF3B30;
     --ios-gray: #C7C7CC;
     --ios-border: #D1D1D6;
-    --ios-radius-main: 12px;
+    --ios-radius-main: 14px;
     --ios-radius-card: 20px;
 }
 
@@ -46,7 +46,7 @@ body {
 
 .page {
     display: none;
-    padding: 20px;
+    padding: 20px 16px; /* 🌟 稍微收紧两侧页面内边距，给核心组件腾出更多横向空间 */
     animation: fadeIn 0.2s ease-out;
 }
 .page.active {
@@ -147,92 +147,92 @@ h2 {
 }
 
 label {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ios-text-secondary);
     font-weight: 600;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+    padding-left: 2px;
 }
 
-/* --- Roller & Unified Blocks --- */
+/* --- 🌟 终极铺满与全面拉伸样式 🌟 --- */
 .roller-wrapper {
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* 🌟 左对齐，让盒子紧凑排列不空旷 */
-    gap: 12px;
-    margin: 8px 0 20px;
+    margin: 4px 0 24px;
+    width: 100%; /* 让外层包裹器强行撑满屏幕 */
 }
-.roller-container {
-    display: inline-flex;
+
+/* 统一两个大底座的风格，横向拉满 */
+.roller-container, .charge-row-container {
+    display: flex;
+    width: 100%; /* 🌟 强制拉满 100% 宽度，直接顶到左右边框 */
     background: #F2F2F7;
     padding: 6px;
-    border-radius: 14px;
+    border-radius: 16px;
     border: 0.5px solid var(--ios-border);
+    box-sizing: border-box;
 }
+
+/* 5个滚轮方块：平分整行，消除右侧空隙 */
 .roller-digit-box {
     position: relative;
-    width: 38px; /* 🌟 固定每一个滚轮盒子的宽度，防止散开太空 */
-    height: 50px;
+    flex: 1; /* 🌟 1:1 绝对平分宽度 */
+    height: 62px; /* 🌟 进一步拉高，更显大气 */
     overflow-y: auto;
     background: #FFFFFF;
-    border-radius: 8px;
-    margin: 0 2px;
+    border-radius: 10px;
+    margin: 0 4px; /* 间距微调 */
     border: 0.5px solid var(--ios-border);
     scrollbar-width: none;
     scroll-snap-type: y mandatory;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 .roller-digit-box::-webkit-scrollbar { display: none; }
+
+/* 滚轮内的单字数字 */
 .roller-item {
-    height: 50px;
-    line-height: 50px;
+    height: 62px;
+    line-height: 62px;
     text-align: center;
     color: var(--ios-text-primary);
-    font-size: 28px;
+    font-size: 32px; /* 🌟 字体再度放大，让方块内部显得十分紧凑充实 */
     font-family: -apple-system-monospaced, monospace;
-    font-weight: 600;
+    font-weight: 700;
     scroll-snap-align: start;
 }
 
-/* 🌟 右侧按钮容器：与左边滚轮盒子的内边距、背景完全对齐统一 */
-.right-button-group { 
-    display: inline-flex; 
-    background: #F2F2F7;
-    padding: 6px;
-    border-radius: 14px;
-    border: 0.5px solid var(--ios-border);
-    gap: 4px; 
-    align-items: center;
-}
-/* 🌟 快捷充电按钮：尺寸、圆角、边框与滚轮里的数字白盒子完全一致 */
+/* 充电快捷按钮：与上面的滚轮尺寸、均分比例保持绝对的像素级一致 */
 .charge-btn {
-    width: 38px;
-    height: 50px;
-    font-size: 15px;
+    flex: 1; /* 🌟 与充电时间滚轮共同平分整行（也是5个方块） */
+    height: 62px;
+    font-size: 18px; /* 🌟 放大字体 */
     border: 0.5px solid var(--ios-border);
     background: #FFFFFF;
     color: var(--ios-blue);
-    border-radius: 8px;
+    border-radius: 10px;
+    margin: 0 4px;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
     display: flex;
     justify-content: center;
     align-items: center;
     box-sizing: border-box;
     transition: all 0.15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 .charge-btn:active { background: #E5E5EA; }
 .charge-btn.active { background: var(--ios-blue); color: #ffffff; border-color: var(--ios-blue); }
 
-/* --- Buttons --- */
+/* --- Big Operations Buttons --- */
 button.main-btn {
     width: 100%;
     padding: 16px;
     font-size: 17px;
     border: none;
     border-radius: var(--ios-radius-main);
-    margin-top: 10px;
+    margin-top: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -240,7 +240,7 @@ button.main-btn {
 button.main-btn:active { opacity: 0.9; transform: scale(0.97); }
 .calc { background: var(--ios-blue); color: white; }
 .full { background: var(--ios-green); color: white; }
-.reset { background: #E5E5EA; color: var(--ios-red); margin-top: 15px !important; }
+.reset { background: #E5E5EA; color: var(--ios-red); margin-top: 16px !important; }
 
 button.main-btn.success-state {
     transform: scale(0.98);
@@ -252,7 +252,6 @@ button.main-btn.full-success-state {
     background-color: #30D158 !important; 
     color: #FFFFFF !important;
 }
-
 button.main-btn.error-state {
     transform: scale(0.98);
     background-color: var(--ios-red) !important;
@@ -475,8 +474,8 @@ button.main-btn.error-state {
 
         <label>充电时间</label>
         <div class="roller-wrapper">
-            <div class="roller-container" id="hourContainer"></div>
-            <div class="right-button-group">
+            <div class="charge-row-container">
+                <div class="roller-digit-box" id="hour-box-wrapper"></div>
                 <button class="charge-btn" id="btn-3h" onclick="setQuickHour(3)">3h</button>
                 <button class="charge-btn" id="btn-4h" onclick="setQuickHour(4)">4h</button>
                 <button class="charge-btn" id="btn-6h" onclick="setQuickHour(6)">6h</button>
@@ -558,26 +557,35 @@ function switchTab(targetPage) {
 
 function initRollers() {
     createRollerBoxes(document.getElementById("odoContainer"), 5, 'odo');
-    createRollerBoxes(document.getElementById("hourContainer"), 1, 'hour');
+    createRollerBoxes(document.getElementById("hour-box-wrapper"), 1, 'hour');
 }
 
 function createRollerBoxes(parent, count, type) {
     parent.innerHTML = "";
     for (let i = count - 1; i >= 0; i--) {
-        let box = document.createElement("div");
-        box.className = "roller-digit-box";
-        box.id = `${type}-box-${i}`;
+        let box;
+        if(type === 'hour') {
+            box = parent;
+            box.id = `hour-box-0`;
+        } else {
+            box = document.createElement("div");
+            box.className = "roller-digit-box";
+            box.id = `${type}-box-${i}`;
+        }
+        
+        box.innerHTML = ""; 
         for (let n = 0; n <= 9; n++) {
             let div = document.createElement("div");
             div.className = "roller-item";
             div.innerText = n;
             box.appendChild(div);
         }
+        
         box.addEventListener("scroll", () => {
             if (type === 'hour') {
                 quickHours.forEach(h => document.getElementById(`btn-${h}h`).classList.remove("active"));
             }
-            let val = Math.round(box.scrollTop / 50);
+            let val = Math.round(box.scrollTop / 62); // 🌟 适配加高后的 62px 滚动高度
             if (type === 'hour') {
                 if (quickHours.includes(val)) {
                     document.getElementById(`btn-${val}h`).classList.add("active");
@@ -589,7 +597,10 @@ function createRollerBoxes(parent, count, type) {
                 }, 50);
             }
         });
-        parent.appendChild(box);
+        
+        if(type !== 'hour') {
+            parent.appendChild(box);
+        }
     }
 }
 
@@ -598,7 +609,7 @@ function getRollerValue(type, count) {
     for (let i = count - 1; i >= 0; i--) {
         let box = document.getElementById(`${type}-box-${i}`);
         if(!box) return 0;
-        let digit = Math.round(box.scrollTop / 50);
+        let digit = Math.round(box.scrollTop / 62);
         val = val * 10 + digit;
     }
     return val;
@@ -608,7 +619,7 @@ function setRollerValue(type, count, val) {
     let valStr = String(val).padStart(count, '0');
     for (let i = 0; i < count; i++) {
         let box = document.getElementById(`${type}-box-${i}`);
-        if (box) box.scrollTop = Number(valStr[count - 1 - i]) * 50;
+        if (box) box.scrollTop = Number(valStr[count - 1 - i]) * 62;
     }
     if (type === 'odo') {
         localStorage.setItem("currentOdoRollerVal", val);
@@ -618,7 +629,7 @@ function setRollerValue(type, count, val) {
 function setQuickHour(h) { 
     let currentVal = getRollerValue('hour', 1);
     if(currentVal === h) {
-        setRollerValue('hour', 1, 0); // 如果已经选中，再点一下变为0
+        setRollerValue('hour', 1, 0); 
     } else {
         setRollerValue('hour', 1, h); 
     }
