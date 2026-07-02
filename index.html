@@ -270,51 +270,57 @@ button.main-btn:active { opacity: 0.9; transform: scale(0.98); }
 .stats-panel {
     background: var(--ios-bg);
     border-radius: var(--ios-radius-card);
-    padding: 16px;
+    padding: 14px;
     margin-bottom: 25px;
 }
 .stats-summary {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
 }
 .stats-box {
     background: var(--ios-card-bg);
-    padding: 12px 16px;
+    padding: 14px 16px;
     border-radius: var(--ios-radius-main);
     width: 44%;
     box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    cursor: pointer; /* 提示可以点击 */
+    transition: transform 0.1s;
+}
+.stats-box:active {
+    transform: scale(0.96);
+    background-color: #F2F2F7;
 }
 .stats-box .num {
     font-size: 24px;
     font-weight: 700;
     color: var(--ios-blue);
-    margin-top: 4px;
+    margin-top: 6px;
 }
 .stats-box .unit {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--ios-text-secondary);
     font-weight: normal;
     margin-left: 2px;
 }
-.chart-title {
-    font-size: 13px;
-    color: var(--ios-text-secondary);
-    font-weight: 600;
-    margin-bottom: 12px;
-    padding-left: 2px;
+.stats-box .click-tip {
+    font-size: 10px;
+    color: var(--ios-blue);
+    margin-top: 4px;
+    font-weight: 500;
 }
-/* 优化：增加柱状图盒子的顶部留白，防止固定的公里数文字被裁剪截断 */
+
+/* 弹窗趋势图专属容器 */
 .chart-container {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    height: 115px;
-    padding: 20px 5px 0;
-    background: var(--ios-card-bg);
+    height: 140px;
+    padding: 25px 5px 5px;
+    background: #F2F2F7;
     border-radius: var(--ios-radius-main);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    margin-top: 15px;
+    overflow-x: auto; /* 一年12个月如果挤，支持横向微调滚动 */
 }
 .chart-bar-wrapper {
     display: flex;
@@ -323,30 +329,29 @@ button.main-btn:active { opacity: 0.9; transform: scale(0.98); }
     flex: 1;
     height: 100%;
     justify-content: flex-end;
+    min-width: 25px; /* 保证间距 */
 }
 .chart-bar {
-    width: 16px;
+    width: 14px;
     background: var(--ios-blue);
     border-radius: 4px 4px 0 0;
     min-height: 2px;
     transition: height 0.3s ease;
-    position: relative;
 }
-/* 【已修改】让数值直接浮动在每根柱子的头顶，永远可见 */
 .chart-bar-val {
     font-size: 9px;
-    color: var(--ios-text-secondary);
+    color: var(--ios-text-primary);
     font-weight: 600;
     margin-bottom: 4px;
     text-align: center;
     white-space: nowrap;
 }
 .chart-label {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--ios-text-secondary);
     margin-top: 6px;
-    margin-bottom: 4px;
-    font-weight: 500;
+    margin-bottom: 2px;
+    font-weight: 600;
 }
 
 /* --- History List Layout --- */
@@ -426,21 +431,21 @@ button.main-btn:active { opacity: 0.9; transform: scale(0.98); }
     -webkit-backdrop-filter: blur(5px);
 }
 .modal-box {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.95);
     padding: 20px;
-    border-radius: 14px;
-    max-width: 350px;
-    width: 90%;
+    border-radius: 20px;
+    max-width: 450px;
+    width: 88%;
     text-align: center;
     box-shadow: 0 8px 30px rgba(0,0,0,0.15);
 }
 .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
-.modal-text { font-size: 13px; color: var(--ios-text-primary); margin-bottom: 20px; line-height: 1.4;}
-.modal-btns { display: flex; flex-direction: column; gap: 8px; }
+.modal-text { font-size: 13px; color: var(--ios-text-primary); margin-bottom: 15px; line-height: 1.4;}
+.modal-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
 .modal-btn {
     width: 100%; padding: 14px; border-radius: 12px; font-size: 17px; font-weight: 600; border: none; cursor: pointer;
 }
-.btn-cancel { background: #FFFFFF; color: var(--ios-blue); }
+.btn-cancel { background: #FFFFFF; color: var(--ios-blue); box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
 .btn-confirm { background: #FFFFFF; color: var(--ios-red); font-weight: 700; }
 .modal-btn:active { background-color: #E5E5EA; }
 </style>
@@ -494,17 +499,17 @@ button.main-btn:active { opacity: 0.9; transform: scale(0.98); }
         
         <div class="stats-panel">
             <div class="stats-summary">
-                <div class="stats-box">
-                    <label>近7天骑行</label>
-                    <div class="num" id="stat-week">0<span class="unit">km</span></div>
+                <div class="stats-box" onclick="openChartModal('week')">
+                    <label>今日骑行</label>
+                    <div class="num" id="stat-today">0<span class="unit">km</span></div>
+                    <div class="click-tip">查看7日趋势 ➔</div>
                 </div>
-                <div class="stats-box">
+                <div class="stats-box" onclick="openChartModal('year')">
                     <label id="stat-month-title">本月骑行</label>
                     <div class="num" id="stat-month">0<span class="unit">km</span></div>
+                    <div class="click-tip">查看年趋势 ➔</div>
                 </div>
             </div>
-            <div class="chart-title">🗓️ 近一周每日趋势</div>
-            <div class="chart-container" id="weekChart"></div>
         </div>
 
         <div class="history-list" id="historyList"></div>
@@ -526,9 +531,9 @@ button.main-btn:active { opacity: 0.9; transform: scale(0.98); }
     <div class="modal-box">
         <div class="modal-title" id="confirmTitle">提示</div>
         <div class="modal-text" id="confirmText">确定吗？</div>
-        <div class="modal-btns">
+        <div id="modalChartContainer"></div> <div class="modal-btns">
             <button class="modal-btn btn-confirm" id="confirmActionBtn">确定</button>
-            <button class="modal-btn btn-cancel" onclick="closeConfirmModal()">取消</button>
+            <button class="modal-btn btn-cancel" id="cancelActionBtn" onclick="closeConfirmModal()">取消</button>
         </div>
     </div>
 </div>
@@ -615,60 +620,116 @@ function askReset(target) { openConfirmModal("确认归零", `确定将当前${t
 function save() { localStorage.setItem("lastOdo", lastOdo ?? ""); localStorage.setItem("remain", remain); localStorage.setItem("maxRange", MAX); localStorage.setItem("historyLog", JSON.stringify(historyLog)); }
 function updateLastOdo() { let found = historyLog.find(log => log.type === 'calc' && log.odo); lastOdo = found ? found.odo : null; }
 
+// 📊 核心统计解析函数（今日、本月数据直接计算）
 function calculateStats() {
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
+    const todayLabel = `${currentMonth}-${now.getDate()}`;
     document.getElementById("stat-month-title").innerText = `${currentMonth}月骑行`;
 
+    let totalTodayMileage = 0;
     let totalMonthMileage = 0;
-    let totalWeekMileage = 0;
-
-    const weekData = {};
-    const weekLabels = [];
-    for (let i = 6; i >= 0; i--) {
-        let d = new Date();
-        d.setDate(now.getDate() - i);
-        let label = `${d.getMonth() + 1}-${d.getDate()}`;
-        weekData[label] = 0;
-        weekLabels.push(label);
-    }
 
     historyLog.forEach(log => {
         if (log.type === 'calc' && log.used) {
             const mileage = Number(log.used);
-            const datePart = log.time.split(" ")[0];
+            const datePart = log.time.split(" ")[0]; // "7-2"
             const monthPart = parseInt(datePart.split("-")[0]);
 
+            if (datePart === todayLabel) {
+                totalTodayMileage += mileage;
+            }
             if (monthPart === currentMonth) {
                 totalMonthMileage += mileage;
-            }
-            if (weekData[datePart] !== undefined) {
-                weekData[datePart] += mileage;
-                totalWeekMileage += mileage;
             }
         }
     });
 
-    document.getElementById("stat-week").innerHTML = `${totalWeekMileage.toFixed(1)}<span class="unit">km</span>`;
+    document.getElementById("stat-today").innerHTML = `${totalTodayMileage.toFixed(1)}<span class="unit">km</span>`;
     document.getElementById("stat-month").innerHTML = `${totalMonthMileage.toFixed(1)}<span class="unit">km</span>`;
+}
 
-    const maxDayVal = Math.max(...Object.values(weekData), 10);
-    let chartHtml = "";
-    weekLabels.forEach(label => {
-        let dayVal = weekData[label];
-        let barHeight = (dayVal / maxDayVal) * 65; // 稍微压缩柱状最大高度，把头顶空间留给文字
-        barHeight = Math.max(dayVal > 0 ? 5 : 2, barHeight);
+// 🗺️ 弹出图表解析主函数
+function openChartModal(type) {
+    const now = new Date();
+    document.getElementById("confirmText").innerText = ""; 
+    document.getElementById("confirmActionBtn").style.display = "none"; // 图表纯展示，隐藏确定按钮
+    document.getElementById("cancelActionBtn").innerText = "关闭";
+    
+    let chartHtml = '<div class="chart-container">';
+    
+    if (type === 'week') {
+        document.getElementById("confirmTitle").innerText = "🗓️ 最近7天骑行趋势";
+        
+        const weekData = {};
+        const weekLabels = [];
+        for (let i = 6; i >= 0; i--) {
+            let d = new Date();
+            d.setDate(now.getDate() - i);
+            let label = `${d.getMonth() + 1}-${d.getDate()}`;
+            weekData[label] = 0;
+            weekLabels.push(label);
+        }
 
-        // 【已修改】将数值显示容器从原来的悬浮层，改到直接直观地输出在柱子顶部
-        chartHtml += `
-            <div class="chart-bar-wrapper">
-                <div class="chart-bar-val">${dayVal > 0 ? dayVal.toFixed(1) : '0'}</div>
-                <div class="chart-bar" style="height: ${barHeight}px;"></div>
-                <div class="chart-label">${label === `${now.getMonth()+1}-${now.getDate()}` ? '今天' : label}</div>
-            </div>
-        `;
-    });
-    document.getElementById("weekChart").innerHTML = chartHtml;
+        historyLog.forEach(log => {
+            if (log.type === 'calc' && log.used) {
+                const datePart = log.time.split(" ")[0];
+                if (weekData[datePart] !== undefined) weekData[datePart] += Number(log.used);
+            }
+        });
+
+        const maxVal = Math.max(...Object.values(weekData), 10);
+        weekLabels.forEach(label => {
+            let val = weekData[label];
+            let height = (val / maxVal) * 85; 
+            height = Math.max(val > 0 ? 5 : 2, height);
+            chartHtml += `
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar-val">${val > 0 ? val.toFixed(1) : '0'}</div>
+                    <div class="chart-bar" style="height: ${height}px;"></div>
+                    <div class="chart-label">${label === `${now.getMonth()+1}-${now.getDate()}` ? '今天' : label}</div>
+                </div>`;
+        });
+
+    } else if (type === 'year') {
+        document.getElementById("confirmTitle").innerText = "📅 最近一年(12个月)统计";
+        
+        const yearData = {};
+        const yearLabels = [];
+        // 获取过去 12 个月标签
+        for (let i = 11; i >= 0; i--) {
+            let d = new Date();
+            d.setMonth(now.getMonth() - i);
+            let label = `${d.getMonth() + 1}月`;
+            yearData[label] = 0;
+            yearLabels.push(label);
+        }
+
+        historyLog.forEach(log => {
+            if (log.type === 'calc' && log.used) {
+                const datePart = log.time.split(" ")[0]; 
+                const m = `${parseInt(datePart.split("-")[0])}月`; // 转化为 "7月"
+                if (yearData[m] !== undefined) yearData[m] += Number(log.used);
+            }
+        });
+
+        const maxVal = Math.max(...Object.values(yearData), 30); // 默认最高基准30km
+        yearLabels.forEach(label => {
+            let val = yearData[label];
+            let height = (val / maxVal) * 85;
+            height = Math.max(val > 0 ? 5 : 2, height);
+            chartHtml += `
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar-val">${val > 0 ? val.toFixed(0) : '0'}</div>
+                    <div class="chart-bar" style="height: ${height}px; background-color: var(--ios-green);"></div>
+                    <div class="chart-label">${label}</div>
+                </div>`;
+        });
+    }
+
+    chartHtml += '</div>';
+    document.getElementById("modalChartContainer").innerHTML = chartHtml;
+    document.getElementById("confirmModal").style.display = "flex";
 }
 
 function render() {
@@ -722,9 +783,20 @@ function calc() {
 }
 
 function full() { remain = MAX; historyLog.unshift({ id: Date.now().toString(), time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`, type: 'full', remain: MAX }); save(); render(); }
-function openConfirmModal(title, text, action) { document.getElementById("confirmTitle").innerText = title; document.getElementById("confirmText").innerText = text; document.getElementById("confirmModal").style.display = "flex"; pendingAction = action; }
+
+// 唤醒普通功能确认弹窗
+function openConfirmModal(title, text, action) { 
+    document.getElementById("modalChartContainer").innerHTML = ""; // 移除可能留存的图表
+    document.getElementById("confirmActionBtn").style.display = "block"; 
+    document.getElementById("cancelActionBtn").innerText = "取消";
+    document.getElementById("confirmTitle").innerText = title; 
+    document.getElementById("confirmText").innerText = text; 
+    document.getElementById("confirmModal").style.display = "flex"; 
+    pendingAction = action; 
+}
 function closeConfirmModal() { document.getElementById("confirmModal").style.display = "none"; }
 document.getElementById("confirmActionBtn").onclick = () => { if(pendingAction) pendingAction(); closeConfirmModal(); };
+
 function openModal() { openConfirmModal("提示", "确定要重置所有数据和历史记录吗？", confirmReset); }
 function openDeleteModal(id) { openConfirmModal("确认删除", "确认删除这条历史数据吗？", () => confirmDeleteLog(id)); }
 function confirmDeleteLog(id) { let idx = historyLog.findIndex(log => log.id === id); if (idx !== -1) { historyLog.splice(idx, 1); remain = historyLog.length === 0 ? MAX : historyLog[0].remain; setRollerValue('hour', 1, 0); save(); render(); } }
