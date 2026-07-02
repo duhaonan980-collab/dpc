@@ -246,7 +246,6 @@ button.main-btn:active { opacity: 0.9; transform: scale(0.97); }
 .full { background: var(--ios-green); color: white; }
 .reset { background: #E5E5EA; color: var(--ios-red); margin-top: 15px !important; }
 
-/* 🌟 成功的视觉状态反馈 */
 button.main-btn.success-state {
     transform: scale(0.98);
     background-color: #5AC8FA !important; 
@@ -258,14 +257,12 @@ button.main-btn.full-success-state {
     color: #FFFFFF !important;
 }
 
-/* 🌟 数据未变化或错误时的失败/警告视觉状态反馈 */
 button.main-btn.error-state {
     transform: scale(0.98);
     background-color: var(--ios-red) !important;
     color: #FFFFFF !important;
 }
 
-/* 🌟 版本号居中样式 */
 .version-tag {
     text-align: center;
     font-size: 11px;
@@ -495,7 +492,7 @@ button.main-btn.error-state {
         <button id="fullBtn" class="main-btn full" onclick="full()">恢复满电</button>
         <button class="main-btn reset" onclick="openModal()">重置数据</button>
         
-        <div class="version-tag">【v1.4.4.5】</div>
+        <div class="version-tag">1.4.4.6</div>
     </div>
 
     <div id="page-history" class="page">
@@ -754,14 +751,19 @@ function render() {
     }
 }
 
-// ⚡ 计算并保存（带无效拦截反馈）
+// ⚡ 计算并保存（修复：精准比对 lastOdo 避免无效数据混入历史）
 function calc() {
     let odo = getRollerValue('odo', 5);
     let hour = getRollerValue('hour', 1);
     const btn = document.getElementById("calcBtn");
+    updateLastOdo();
 
-    // 🌟 拦截：发现滚轮数据没有发生任何改变（全是0）
-    if (odo === 0 && hour === 0) {
+    // 🌟 精准拦截逻辑：
+    // 情况1：没有任何基础数据记录时，滚轮必须调整（不能为0）
+    // 情况2：已经有历史里程（lastOdo不为空），且当前滚轮数字跟上次里程一模一样，而且也没有充电时间。
+    let isOdoUnchanged = (lastOdo !== null) ? (odo === lastOdo) : (odo === 0);
+    
+    if (isOdoUnchanged && hour === 0) {
         btn.classList.add("error-state");
         btn.innerText = "❌ 无可计算保存信息";
         setTimeout(() => {
@@ -771,7 +773,6 @@ function calc() {
         return; 
     }
 
-    updateLastOdo();
     let usedLog = null;
     if (odo !== 0) {
         if (lastOdo !== null && odo < lastOdo) { openConfirmModal("里程输入错误", `当前总里程 (${odo} km) 不能小于上次记录 (${lastOdo} km)，请重新核对。`, null); return; }
@@ -793,11 +794,10 @@ function calc() {
     }, 800);
 }
 
-// 🟢 恢复满电（带满电拦截反馈）
+// 🟢 恢复满电
 function full() { 
     const btn = document.getElementById("fullBtn");
 
-    // 🌟 拦截：如果当前原本就是最大电量
     if (remain === MAX) {
         btn.classList.add("error-state");
         btn.innerText = "❌ 当前已满电!";
