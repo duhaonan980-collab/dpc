@@ -246,6 +246,7 @@ button.main-btn:active { opacity: 0.9; transform: scale(0.97); }
 .full { background: var(--ios-green); color: white; }
 .reset { background: #E5E5EA; color: var(--ios-red); margin-top: 15px !important; }
 
+/* 🌟 成功的视觉状态反馈 */
 button.main-btn.success-state {
     transform: scale(0.98);
     background-color: #5AC8FA !important; 
@@ -255,6 +256,24 @@ button.main-btn.full-success-state {
     transform: scale(0.98);
     background-color: #30D158 !important; 
     color: #FFFFFF !important;
+}
+
+/* 🌟 数据未变化或错误时的失败/警告视觉状态反馈 */
+button.main-btn.error-state {
+    transform: scale(0.98);
+    background-color: var(--ios-red) !important;
+    color: #FFFFFF !important;
+}
+
+/* 🌟 版本号居中样式 */
+.version-tag {
+    text-align: center;
+    font-size: 11px;
+    color: var(--ios-text-secondary);
+    font-family: -apple-system-monospaced, monospace;
+    margin-top: 35px;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
 }
 
 /* --- 📊 统计面板组件样式 --- */
@@ -476,7 +495,8 @@ button.main-btn.full-success-state {
         <button id="fullBtn" class="main-btn full" onclick="full()">恢复满电</button>
         <button class="main-btn reset" onclick="openModal()">重置数据</button>
         
-        </div>
+        <div class="version-tag">【v1.4.4.5】</div>
+    </div>
 
     <div id="page-history" class="page">
         <h2>📋 历史数据</h2>
@@ -734,10 +754,23 @@ function render() {
     }
 }
 
+// ⚡ 计算并保存（带无效拦截反馈）
 function calc() {
     let odo = getRollerValue('odo', 5);
     let hour = getRollerValue('hour', 1);
-    if (odo === 0 && hour === 0) return alert("请调整里程滚轮或选择充电时间");
+    const btn = document.getElementById("calcBtn");
+
+    // 🌟 拦截：发现滚轮数据没有发生任何改变（全是0）
+    if (odo === 0 && hour === 0) {
+        btn.classList.add("error-state");
+        btn.innerText = "❌ 无可计算保存信息";
+        setTimeout(() => {
+            btn.classList.remove("error-state");
+            btn.innerText = "计算并保存";
+        }, 1200);
+        return; 
+    }
+
     updateLastOdo();
     let usedLog = null;
     if (odo !== 0) {
@@ -752,7 +785,6 @@ function calc() {
     setRollerValue('hour', 1, 0);
     save(); render();
 
-    const btn = document.getElementById("calcBtn");
     btn.classList.add("success-state");
     btn.innerText = "✔ 已保存!";
     setTimeout(() => {
@@ -761,12 +793,25 @@ function calc() {
     }, 800);
 }
 
+// 🟢 恢复满电（带满电拦截反馈）
 function full() { 
+    const btn = document.getElementById("fullBtn");
+
+    // 🌟 拦截：如果当前原本就是最大电量
+    if (remain === MAX) {
+        btn.classList.add("error-state");
+        btn.innerText = "❌ 当前已满电!";
+        setTimeout(() => {
+            btn.classList.remove("error-state");
+            btn.innerText = "恢复满电";
+        }, 1200);
+        return; 
+    }
+
     remain = MAX; 
     historyLog.unshift({ id: Date.now().toString(), time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`, type: 'full', remain: MAX }); 
     save(); render(); 
 
-    const btn = document.getElementById("fullBtn");
     btn.classList.add("full-success-state");
     btn.innerText = "✔ 已恢复满电!";
     setTimeout(() => {
@@ -784,7 +829,7 @@ function openConfirmModal(title, text, action) {
     document.getElementById("confirmModal").style.display = "flex"; 
     pendingAction = action; 
 }
-function closeConfirmModal() { document.getElementById("confirmModal").style.none = "none"; document.getElementById("confirmModal").style.display = "none"; }
+function closeConfirmModal() { document.getElementById("confirmModal").style.display = "none"; }
 document.getElementById("confirmActionBtn").onclick = () => { if(pendingAction) pendingAction(); closeConfirmModal(); };
 
 function openModal() { openConfirmModal("提示", "确定要重置所有数据和历史记录吗？", confirmReset); }
