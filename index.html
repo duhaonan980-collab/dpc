@@ -156,10 +156,11 @@ label {
     margin-bottom: 6px;
 }
 
-/* --- Roller --- */
+/* --- Roller & Unified Blocks --- */
 .roller-wrapper {
     display: flex;
     align-items: center;
+    justify-content: flex-start; /* 🌟 左对齐，让盒子紧凑排列不空旷 */
     gap: 12px;
     margin: 8px 0 20px;
 }
@@ -172,7 +173,7 @@ label {
 }
 .roller-digit-box {
     position: relative;
-    width: 38px;
+    width: 38px; /* 🌟 固定每一个滚轮盒子的宽度，防止散开太空 */
     height: 50px;
     overflow-y: auto;
     background: #FFFFFF;
@@ -194,45 +195,35 @@ label {
     scroll-snap-align: start;
 }
 
-.roller-reset-btn {
-    background: #E5E5EA;
-    color: var(--ios-red); /* 归零统一用红色警示 */
-    border: none;
-    border-radius: var(--ios-radius-main);
-    width: 44px;
-    height: 50px;
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: 600;
-    flex-shrink: 0;
-}
-.roller-reset-btn:active { background: #D1D1D6; }
-
-/* 🌟 右侧多按钮组合：包裹3h、4h、6h、8h及归零 */
+/* 🌟 右侧按钮容器：与左边滚轮盒子的内边距、背景完全对齐统一 */
 .right-button-group { 
-    display: grid; 
-    grid-template-columns: repeat(3, 1fr); 
-    gap: 6px; 
+    display: inline-flex; 
+    background: #F2F2F7;
+    padding: 6px;
+    border-radius: 14px;
+    border: 0.5px solid var(--ios-border);
+    gap: 4px; 
     align-items: center;
-    flex: 1;
 }
+/* 🌟 快捷充电按钮：尺寸、圆角、边框与滚轮里的数字白盒子完全一致 */
 .charge-btn {
+    width: 38px;
     height: 50px;
-    font-size: 14px;
-    border: 1px solid var(--ios-blue);
-    background: transparent;
+    font-size: 15px;
+    border: 0.5px solid var(--ios-border);
+    background: #FFFFFF;
     color: var(--ios-blue);
-    border-radius: var(--ios-radius-main);
+    border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
     display: flex;
     justify-content: center;
     align-items: center;
+    box-sizing: border-box;
+    transition: all 0.15s;
 }
-.charge-btn.active { background: var(--ios-blue); color: #ffffff; }
+.charge-btn:active { background: #E5E5EA; }
+.charge-btn.active { background: var(--ios-blue); color: #ffffff; border-color: var(--ios-blue); }
 
 /* --- Buttons --- */
 button.main-btn {
@@ -479,7 +470,7 @@ button.main-btn.error-state {
 
         <label>当前总里程</label>
         <div class="roller-wrapper">
-            <div class="roller-container" id="odoContainer" style="width: 100%; justify-content: space-between;"></div>
+            <div class="roller-container" id="odoContainer"></div>
         </div>
 
         <label>充电时间</label>
@@ -490,7 +481,6 @@ button.main-btn.error-state {
                 <button class="charge-btn" id="btn-4h" onclick="setQuickHour(4)">4h</button>
                 <button class="charge-btn" id="btn-6h" onclick="setQuickHour(6)">6h</button>
                 <button class="charge-btn" id="btn-8h" onclick="setQuickHour(8)">8h</button>
-                <button class="roller-reset-btn" style="grid-column: span 2; width: 100%;" onclick="askReset('hour')">归零</button>
             </div>
         </div>
 
@@ -498,7 +488,7 @@ button.main-btn.error-state {
         <button id="fullBtn" class="main-btn full" onclick="full()">恢复满电</button>
         <button class="main-btn reset" onclick="openModal()">重置数据</button>
         
-        <div class="version-tag">1.4.4.7</div>
+        <div class="version-tag">1.4.4.8</div>
     </div>
 
     <div id="page-history" class="page">
@@ -577,8 +567,6 @@ function createRollerBoxes(parent, count, type) {
         let box = document.createElement("div");
         box.className = "roller-digit-box";
         box.id = `${type}-box-${i}`;
-        // 为了填满去掉了归零后的里程宽度空间，适当微调宽度
-        if(type === 'odo') box.style.width = "46px"; 
         for (let n = 0; n <= 9; n++) {
             let div = document.createElement("div");
             div.className = "roller-item";
@@ -627,8 +615,14 @@ function setRollerValue(type, count, val) {
     }
 }
 
-function setQuickHour(h) { setRollerValue('hour', 1, h); }
-function askReset(target) { openConfirmModal("确认归零", "确定将当前充电时间滚轮归零吗？", () => { setRollerValue('hour', 1, 0); }); }
+function setQuickHour(h) { 
+    let currentVal = getRollerValue('hour', 1);
+    if(currentVal === h) {
+        setRollerValue('hour', 1, 0); // 如果已经选中，再点一下变为0
+    } else {
+        setRollerValue('hour', 1, h); 
+    }
+}
 function save() { localStorage.setItem("lastOdo", lastOdo ?? ""); localStorage.setItem("remain", remain); localStorage.setItem("maxRange", MAX); localStorage.setItem("historyLog", JSON.stringify(historyLog)); }
 function updateLastOdo() { let found = historyLog.find(log => log.type === 'calc' && log.odo); lastOdo = found ? found.odo : null; }
 
