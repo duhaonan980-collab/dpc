@@ -246,37 +246,16 @@ button.main-btn:active { opacity: 0.9; transform: scale(0.97); }
 .full { background: var(--ios-green); color: white; }
 .reset { background: #E5E5EA; color: var(--ios-red); margin-top: 15px !important; }
 
-/* 🌟 新增：按钮成功态的样式反馈 */
 button.main-btn.success-state {
     transform: scale(0.98);
-    background-color: #5AC8FA !important; /* 淡蓝色反馈 */
+    background-color: #5AC8FA !important; 
     color: #FFFFFF !important;
 }
 button.main-btn.full-success-state {
     transform: scale(0.98);
-    background-color: #30D158 !important; /* 淡绿色反馈 */
+    background-color: #30D158 !important; 
     color: #FFFFFF !important;
 }
-
-/* --- Info Dashboard --- */
-.info {
-    margin-top: 25px;
-    font-size: 15px;
-    color: var(--ios-text-primary);
-    line-height: 1.5;
-    background: var(--ios-bg);
-    padding: 16px;
-    border-radius: var(--ios-radius-main);
-}
-.info div {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 0;
-    border-bottom: 0.5px solid rgba(0,0,0,0.05);
-}
-.info div:last-child { border-bottom: none; }
-.info span { font-weight: 600; }
-.warn { color: var(--ios-red); font-weight: 700 !important; margin-top: 8px; justify-content: center !important;}
 
 /* --- 📊 统计面板组件样式 --- */
 .stats-panel {
@@ -322,7 +301,6 @@ button.main-btn.full-success-state {
     font-weight: 500;
 }
 
-/* 弹窗趋势图专属容器 */
 .chart-container {
     display: flex;
     justify-content: space-between;
@@ -497,14 +475,8 @@ button.main-btn.full-success-state {
         <button id="calcBtn" class="main-btn calc" onclick="calc()">计算并保存</button>
         <button id="fullBtn" class="main-btn full" onclick="full()">恢复满电</button>
         <button class="main-btn reset" onclick="openModal()">重置数据</button>
-
-        <div class="info">
-            <div>上次总里程：<span id="last">-</span></div>
-            <div>本次骑行：<span id="used">0</span> km</div>
-            <div>当前剩余：<span id="left">60</span> km</div>
-            <div class="warn" id="msg"></div>
+        
         </div>
-    </div>
 
     <div id="page-history" class="page">
         <h2>📋 历史数据</h2>
@@ -737,14 +709,12 @@ function openChartModal(type) {
 function render() {
     updateLastOdo();
     document.getElementById("remain").innerText = Number(remain.toFixed(1)) + "km";
-    document.getElementById("last").innerText = lastOdo ?? "-";
     let percent = Math.max(0, Math.min(100, (remain / MAX) * 100));
     let fill = document.getElementById("fill");
     fill.style.width = percent + "%";
     if (percent > 40) fill.style.background = "var(--ios-green)";
     else if (percent > 20) fill.style.background = "var(--ios-yellow)";
     else fill.style.background = "var(--ios-red)";
-    document.getElementById("left").innerText = Number(remain.toFixed(1));
 
     let listHtml = historyLog.length === 0 ? "<div style='color:var(--ios-text-secondary);text-align:center;margin-top:40px;font-size:15px;'>暂无历史记录</div>" : "";
     historyLog.forEach(log => {
@@ -764,17 +734,15 @@ function render() {
     }
 }
 
-// ⚡ 已添加高级视觉反馈
 function calc() {
     let odo = getRollerValue('odo', 5);
     let hour = getRollerValue('hour', 1);
     if (odo === 0 && hour === 0) return alert("请调整里程滚轮或选择充电时间");
-    document.getElementById("msg").innerText = "";
     updateLastOdo();
     let usedLog = null;
     if (odo !== 0) {
         if (lastOdo !== null && odo < lastOdo) { openConfirmModal("里程输入错误", `当前总里程 (${odo} km) 不能小于上次记录 (${lastOdo} km)，请重新核对。`, null); return; }
-        if (lastOdo !== null) { usedLog = Number((odo - lastOdo).toFixed(1)); remain -= usedLog; document.getElementById("used").innerText = usedLog; }
+        if (lastOdo !== null) { usedLog = Number((odo - lastOdo).toFixed(1)); remain -= usedLog; }
         lastOdo = odo;
     }
     if (hour > 0) remain += hour * 10;
@@ -784,7 +752,6 @@ function calc() {
     setRollerValue('hour', 1, 0);
     save(); render();
 
-    // 🌟 触发按钮无干扰反馈
     const btn = document.getElementById("calcBtn");
     btn.classList.add("success-state");
     btn.innerText = "✔ 已保存!";
@@ -794,13 +761,11 @@ function calc() {
     }, 800);
 }
 
-// 🟢 已添加高级视觉反馈
 function full() { 
     remain = MAX; 
     historyLog.unshift({ id: Date.now().toString(), time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`, type: 'full', remain: MAX }); 
     save(); render(); 
 
-    // 🌟 触发按钮无干扰反馈
     const btn = document.getElementById("fullBtn");
     btn.classList.add("full-success-state");
     btn.innerText = "✔ 已恢复满电!";
@@ -819,13 +784,13 @@ function openConfirmModal(title, text, action) {
     document.getElementById("confirmModal").style.display = "flex"; 
     pendingAction = action; 
 }
-function closeConfirmModal() { document.getElementById("confirmModal").style.display = "none"; }
+function closeConfirmModal() { document.getElementById("confirmModal").style.none = "none"; document.getElementById("confirmModal").style.display = "none"; }
 document.getElementById("confirmActionBtn").onclick = () => { if(pendingAction) pendingAction(); closeConfirmModal(); };
 
 function openModal() { openConfirmModal("提示", "确定要重置所有数据和历史记录吗？", confirmReset); }
 function openDeleteModal(id) { openConfirmModal("确认删除", "确认删除这条历史数据吗？", () => confirmDeleteLog(id)); }
 function confirmDeleteLog(id) { let idx = historyLog.findIndex(log => log.id === id); if (idx !== -1) { historyLog.splice(idx, 1); remain = historyLog.length === 0 ? MAX : historyLog[0].remain; setRollerValue('hour', 1, 0); save(); render(); } }
-function confirmReset() { localStorage.clear(); lastOdo = null; MAX = 60; remain = MAX; historyLog = []; document.getElementById("used").innerText = "0"; document.getElementById("msg").innerText = ""; setRollerValue('odo', 5, 0); setRollerValue('hour', 1, 0); save(); render(); }
+function confirmReset() { localStorage.clear(); lastOdo = null; MAX = 60; remain = MAX; historyLog = []; setRollerValue('odo', 5, 0); setRollerValue('hour', 1, 0); save(); render(); }
 function startEdit() { document.getElementById("remain").style.display = "none"; document.getElementById("setBtn").style.display = "none"; document.getElementById("editBox").style.display = "flex"; document.getElementById("maxInput").value = MAX; }
 function cancelEdit() { document.getElementById("editBox").style.display = "none"; document.getElementById("remain").style.display = "block"; document.getElementById("setBtn").style.display = "flex"; }
 function saveMax() { let v = Number(document.getElementById("maxInput").value); if(v > 0) { MAX = v; remain = v; historyLog.unshift({ id: Date.now().toString(), time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`, type: 'edit', remain: MAX }); save(); render(); } cancelEdit(); }
