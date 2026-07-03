@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>电瓶车续航助手</title>
+
 <style>
 /* --- iOS 18 Specific Styles --- */
 :root {
@@ -21,6 +22,15 @@
     --ios-radius-card: 20px;
 }
 
+/* 深色模式变量 */
+[data-theme="dark"] {
+    --ios-bg: #1C1C1E;
+    --ios-card-bg: #2C2C2E;
+    --ios-text-primary: #FFFFFF;
+    --ios-text-secondary: #AEAEB2;
+    --ios-border: #38383A;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
     background-color: var(--ios-bg);
@@ -29,6 +39,7 @@ body {
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
     color: var(--ios-text-primary);
+    transition: background-color 0.3s, color 0.3s;
 }
 
 /* --- App Container & Pages --- */
@@ -42,11 +53,13 @@ body {
     box-shadow: 0 0 20px rgba(0,0,0,0.05);
     position: relative;
     padding-bottom: calc(65px + env(safe-area-inset-bottom)); 
+    box-sizing: border-box;
+    transition: background-color 0.3s;
 }
 
 .page {
     display: none;
-    padding: 20px 16px; /* 🌟 稍微收紧两侧页面内边距，给核心组件腾出更多横向空间 */
+    padding: 20px 16px;
     animation: fadeIn 0.2s ease-out;
 }
 .page.active {
@@ -98,6 +111,7 @@ h2 {
     transition: background-color 0.2s;
     margin-top: 6px;
 }
+[data-theme="dark"] .setting-btn { background: #3A3A3C; }
 .setting-btn:active { background: #D1D1D6; }
 
 .edit-box { display: none; align-items: center; gap: 10px; }
@@ -139,6 +153,7 @@ h2 {
     overflow: hidden;
     margin: 10px 0 25px;
 }
+[data-theme="dark"] .bar { background: #3A3A3C; }
 #fill {
     height: 100%;
     width: 100%;
@@ -156,60 +171,57 @@ label {
     padding-left: 2px;
 }
 
-/* --- 🌟 终极铺满与全面拉伸样式 🌟 --- */
 .roller-wrapper {
     display: flex;
     align-items: center;
     margin: 4px 0 24px;
-    width: 100%; /* 让外层包裹器强行撑满屏幕 */
+    width: 100%;
 }
 
-/* 统一两个大底座的风格，横向拉满 */
 .roller-container, .charge-row-container {
     display: flex;
-    width: 100%; /* 🌟 强制拉满 100% 宽度，直接顶到左右边框 */
-    background: #F2F2F7;
+    width: 100%;
+    background: var(--ios-bg);
     padding: 6px;
     border-radius: 16px;
     border: 0.5px solid var(--ios-border);
     box-sizing: border-box;
+    transition: background-color 0.3s, border-color 0.3s;
 }
 
-/* 5个滚轮方块：平分整行，消除右侧空隙 */
 .roller-digit-box {
     position: relative;
-    flex: 1; /* 🌟 1:1 绝对平分宽度 */
-    height: 62px; /* 🌟 进一步拉高，更显大气 */
+    flex: 1;
+    height: 62px;
     overflow-y: auto;
-    background: #FFFFFF;
+    background: var(--ios-card-bg);
     border-radius: 10px;
-    margin: 0 4px; /* 间距微调 */
+    margin: 0 4px;
     border: 0.5px solid var(--ios-border);
     scrollbar-width: none;
     scroll-snap-type: y mandatory;
     box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    transition: background-color 0.3s, border-color 0.3s;
 }
 .roller-digit-box::-webkit-scrollbar { display: none; }
 
-/* 滚轮内的单字数字 */
 .roller-item {
     height: 62px;
     line-height: 62px;
     text-align: center;
     color: var(--ios-text-primary);
-    font-size: 32px; /* 🌟 字体再度放大，让方块内部显得十分紧凑充实 */
+    font-size: 32px;
     font-family: -apple-system-monospaced, monospace;
     font-weight: 700;
     scroll-snap-align: start;
 }
 
-/* 充电快捷按钮：与上面的滚轮尺寸、均分比例保持绝对的像素级一致 */
 .charge-btn {
-    flex: 1; /* 🌟 与充电时间滚轮共同平分整行（也是5个方块） */
+    flex: 1;
     height: 62px;
-    font-size: 18px; /* 🌟 放大字体 */
+    font-size: 18px;
     border: 0.5px solid var(--ios-border);
-    background: #FFFFFF;
+    background: var(--ios-card-bg);
     color: var(--ios-blue);
     border-radius: 10px;
     margin: 0 4px;
@@ -223,9 +235,9 @@ label {
     box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 .charge-btn:active { background: #E5E5EA; }
+[data-theme="dark"] .charge-btn:active { background: #3A3A3C; }
 .charge-btn.active { background: var(--ios-blue); color: #ffffff; border-color: var(--ios-blue); }
 
-/* --- Big Operations Buttons --- */
 button.main-btn {
     width: 100%;
     padding: 16px;
@@ -239,24 +251,38 @@ button.main-btn {
 }
 button.main-btn:active { opacity: 0.9; transform: scale(0.97); }
 .calc { background: var(--ios-blue); color: white; }
-.full { background: var(--ios-green); color: white; }
-.reset { background: #E5E5EA; color: var(--ios-red); margin-top: 16px !important; }
+.full {
+    background: rgba(52,199,89,0.10);
+    color: #34C759;
+    border: 0.5px solid rgba(52,199,89,0.18);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+.reset {
+    background: #E5E5EA;
+    color: var(--ios-red);
+    border: none;
+}
+.btn-pair {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+.btn-pair .main-btn {
+    width: auto;
+    flex: 1;
+    margin-top: 0;
+}
+[data-theme="dark"] .full {
+    background: rgba(48,209,88,0.12);
+    color: #30D158;
+    border-color: rgba(48,209,88,0.22);
+}
+[data-theme="dark"] .reset { background: #3A3A3C; }
 
-button.main-btn.success-state {
-    transform: scale(0.98);
-    background-color: #5AC8FA !important; 
-    color: #FFFFFF !important;
-}
-button.main-btn.full-success-state {
-    transform: scale(0.98);
-    background-color: #30D158 !important; 
-    color: #FFFFFF !important;
-}
-button.main-btn.error-state {
-    transform: scale(0.98);
-    background-color: var(--ios-red) !important;
-    color: #FFFFFF !important;
-}
+button.main-btn.success-state { transform: scale(0.98); background-color: #5AC8FA !important; color: #FFFFFF !important; }
+button.main-btn.full-success-state { transform: scale(0.98); background-color: #30D158 !important; color: #FFFFFF !important; }
+button.main-btn.error-state { transform: scale(0.98); background-color: var(--ios-red) !important; color: #FFFFFF !important; }
 
 .version-tag {
     text-align: center;
@@ -268,12 +294,13 @@ button.main-btn.error-state {
     letter-spacing: 0.5px;
 }
 
-/* --- 📊 统计面板组件样式 --- */
+/* --- 📊 统计与图表 --- */
 .stats-panel {
     background: var(--ios-bg);
     border-radius: var(--ios-radius-card);
     padding: 14px;
     margin-bottom: 25px;
+    transition: background-color 0.3s;
 }
 .stats-summary {
     display: flex;
@@ -287,11 +314,11 @@ button.main-btn.error-state {
     width: 44%;
     box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     cursor: pointer;
-    transition: transform 0.1s;
+    transition: transform 0.1s, background-color 0.3s;
 }
 .stats-box:active {
     transform: scale(0.96);
-    background-color: #F2F2F7;
+    background-color: var(--ios-bg);
 }
 .stats-box .num {
     font-size: 24px;
@@ -318,7 +345,7 @@ button.main-btn.error-state {
     align-items: flex-end;
     height: 140px;
     padding: 25px 5px 5px;
-    background: #F2F2F7;
+    background: var(--ios-bg);
     border-radius: var(--ios-radius-main);
     margin-top: 15px;
     overflow-x: auto;
@@ -347,6 +374,9 @@ button.main-btn.error-state {
     text-align: center;
     white-space: nowrap;
 }
+.chart-bar-max {
+    background-color: var(--ios-green) !important;
+}
 .chart-label {
     font-size: 9px;
     color: var(--ios-text-secondary);
@@ -358,13 +388,14 @@ button.main-btn.error-state {
 /* --- History List Layout --- */
 .history-list { font-size: 14px; color: var(--ios-text-primary); }
 .history-item {
-    background: #FFFFFF;
+    background: var(--ios-card-bg);
     border-bottom: 0.5px solid var(--ios-border);
     padding: 14px 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
+    transition: background-color 0.3s, border-color 0.3s;
 }
 .history-item:last-child { border-bottom: none; }
 .history-content { flex: 1; }
@@ -381,6 +412,164 @@ button.main-btn.error-state {
     cursor: pointer;
     font-weight: 500;
 }
+
+/* --- iOS 18 Setting Page Styles --- */
+.setting-group {
+    background: var(--ios-bg);
+    border-radius: var(--ios-radius-card);
+    padding: 4px;
+    margin-bottom: 20px;
+}
+.setting-row {
+    background: var(--ios-card-bg);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    border-bottom: 0.5px solid var(--ios-border);
+}
+.setting-row:first-child { border-top-left-radius: 16px; border-top-right-radius: 16px; }
+.setting-row:last-child { border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; border-bottom: none; }
+.setting-row > div { width: 100%; }
+.setting-title { font-size: 16px; font-weight: 600; }
+.setting-desc { font-size: 12px; color: var(--ios-text-secondary); margin-top: 2px; }
+
+/* 充电功率流式自适应网格 */
+.power-grid-control {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+    margin-top: 4px;
+}
+.power-grid-control .segment-btn {
+    background: #E5E5EA;
+    border: none;
+    padding: 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 10px;
+    color: var(--ios-text-primary);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    box-sizing: border-box;
+    border: 0.5px solid transparent;
+}
+[data-theme="dark"] .power-grid-control .segment-btn { background: #3A3A3C; }
+.power-grid-control .segment-btn.active {
+    background: #FFFFFF;
+    color: var(--ios-blue);
+    border-color: var(--ios-border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+[data-theme="dark"] .power-grid-control .segment-btn.active {
+    background: #636366;
+    color: #FFFFFF;
+    border-color: transparent;
+}
+
+/* 里里程表位数选择胶囊按钮 */
+.setting-row .segmented-control {
+    display: flex;
+    background: #E5E5EA;
+    padding: 2px;
+    border-radius: 8px;
+    width: 100%;
+    justify-content: space-between;
+    box-sizing: border-box;
+    margin-top: 4px;
+}
+[data-theme="dark"] .segmented-control { background: #3A3A3C; }
+.setting-row .segmented-control .segment-btn {
+    border: none;
+    background: transparent;
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 6px;
+    color: var(--ios-text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    text-align: center;
+}
+.setting-row .segmented-control .segment-btn.active {
+    background: #FFFFFF;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+[data-theme="dark"] .setting-row .segmented-control .segment-btn.active { background: #636366; }
+
+/* 数据管理按钮 — iOS 26 液态玻璃胶囊 */
+.data-action-btns {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
+}
+.data-btn {
+    flex: 1;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    padding: 11px 0;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+.data-btn.export {
+    background: rgba(52,199,89,0.10);
+    color: #34C759;
+    border-color: rgba(52,199,89,0.18);
+}
+.data-btn.import {
+    background: rgba(0,122,255,0.10);
+    color: #007AFF;
+    border-color: rgba(0,122,255,0.18);
+}
+.data-btn:active { transform: scale(0.96); filter: brightness(1.1); }
+.data-btn:hover { background: rgba(0,122,255,0.14); }
+.data-btn.export:hover { background: rgba(52,199,89,0.14); }
+[data-theme="dark"] .data-btn.export {
+    background: rgba(48,209,88,0.12);
+    color: #30D158;
+    border-color: rgba(48,209,88,0.22);
+}
+[data-theme="dark"] .data-btn.import {
+    background: rgba(10,132,255,0.12);
+    color: #0A84FF;
+    border-color: rgba(10,132,255,0.22);
+}
+
+/* Switch Toggle */
+.setting-row:has(.ios-switch) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+.ios-switch {
+    position: relative;
+    display: inline-block;
+    width: 51px;
+    height: 31px;
+    flex-shrink: 0;
+}
+.ios-switch input { opacity: 0; width: 0; height: 0; }
+.switch-slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #E5E5EA; transition: .3s; border-radius: 34px;
+}
+[data-theme="dark"] .switch-slider { background-color: #3A3A3C; }
+.switch-slider:before {
+    position: absolute; content: ""; height: 27px; width: 27px; left: 2px; bottom: 2px;
+    background-color: white; transition: .3s; border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+input:checked + .switch-slider { background-color: var(--ios-green); }
+input:checked + .switch-slider:before { transform: translateX(20px); }
 
 /* --- iOS 18 Bottom Tab Bar --- */
 .tab-bar {
@@ -400,7 +589,9 @@ button.main-btn.error-state {
     align-items: center;
     padding-bottom: env(safe-area-inset-bottom);
     z-index: 999;
+    transition: background-color 0.3s, border-color 0.3s;
 }
+[data-theme="dark"] .tab-bar { background: rgba(30, 30, 30, 0.94); }
 .tab-item {
     display: flex;
     flex-direction: column;
@@ -410,18 +601,13 @@ button.main-btn.error-state {
     font-size: 10px;
     font-weight: 500;
     text-decoration: none;
-    width: 50%;
+    width: 33.3%;
     height: 100%;
     cursor: pointer;
     transition: color 0.15s;
 }
-.tab-item .icon {
-    font-size: 22px;
-    margin-bottom: 2px;
-}
-.tab-item.active {
-    color: var(--ios-blue);
-}
+.tab-item .icon { font-size: 22px; margin-bottom: 2px; }
+.tab-item.active { color: var(--ios-blue); }
 
 /* --- Modal Style --- */
 .modal-overlay {
@@ -432,30 +618,29 @@ button.main-btn.error-state {
     -webkit-backdrop-filter: blur(5px);
 }
 .modal-box {
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--ios-card-bg);
     padding: 20px;
     border-radius: 20px;
     max-width: 450px;
     width: 88%;
     text-align: center;
     box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    color: var(--ios-text-primary);
+    transition: background-color 0.3s;
 }
 .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
 .modal-text { font-size: 13px; color: var(--ios-text-primary); margin-bottom: 15px; line-height: 1.4;}
 .modal-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
-.modal-btn {
-    width: 100%; padding: 14px; border-radius: 12px; font-size: 17px; font-weight: 600; border: none; cursor: pointer;
-}
-.btn-cancel { background: #FFFFFF; color: var(--ios-blue); box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
-.btn-confirm { background: #FFFFFF; color: var(--ios-red); font-weight: 700; }
-.modal-btn:active { background-color: #E5E5EA; }
+.modal-btn { width: 100%; padding: 14px; border-radius: 12px; font-size: 17px; font-weight: 600; border: none; cursor: pointer; }
+.btn-cancel { background: var(--ios-bg); color: var(--ios-blue); }
+.btn-confirm { background: var(--ios-bg); color: var(--ios-red); font-weight: 700; }
+.modal-btn:active { opacity: 0.8; }
 </style>
 </head>
 <body>
 
 <div class="app-container">
     <div id="page-assistant" class="page active">
-        <h2>🔋 电瓶车续航助手</h2>
         <div class="big-container">
             <div class="big" id="remain">60km</div>
             <button class="setting-btn" id="setBtn" onclick="startEdit()">⚙️</button>
@@ -484,15 +669,16 @@ button.main-btn.error-state {
         </div>
 
         <button id="calcBtn" class="main-btn calc" onclick="calc()">计算并保存</button>
-        <button id="fullBtn" class="main-btn full" onclick="full()">恢复满电</button>
-        <button class="main-btn reset" onclick="openModal()">重置数据</button>
+        <div class="btn-pair">
+            <button id="fullBtn" class="main-btn full" onclick="full()">恢复满电</button>
+            <button class="main-btn reset" onclick="openModal()">重置数据</button>
+        </div>
         
-        <div class="version-tag">1.4.4.9</div>
+        <div class="version-tag">Version 1.6.0.0</div>
     </div>
 
     <div id="page-history" class="page">
         <h2>📋 历史数据</h2>
-        
         <div class="stats-panel">
             <div class="stats-summary">
                 <div class="stats-box" onclick="openChartModal('week')">
@@ -507,18 +693,80 @@ button.main-btn.error-state {
                 </div>
             </div>
         </div>
-
         <div class="history-list" id="historyList"></div>
+    </div>
+
+    <div id="page-setting" class="page">
+        <h2>⚙️ 偏好设置</h2>
+        
+        <div class="setting-group">
+            <div class="setting-row">
+                <div>
+                    <div class="setting-title">充电功率选择</div>
+                    <div class="setting-desc" id="power-desc">当前: 200W (每小时回复10km)</div>
+                </div>
+                <div class="power-grid-control">
+                    <button class="segment-btn" id="p-200" onclick="setPower(200)">200W</button>
+                    <button class="segment-btn" id="p-300" onclick="setPower(300)">300W</button>
+                    <button class="segment-btn" id="p-400" onclick="setPower(400)">400W</button>
+                    <button class="segment-btn" id="p-500" onclick="setPower(500)">500W</button>
+                    <button class="segment-btn" id="p-600" onclick="setPower(600)">600W</button>
+                    <button class="segment-btn" id="p-700" onclick="setPower(700)">700W</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-row">
+                <div>
+                    <div class="setting-title">里程表位数</div>
+                    <div class="setting-desc">设置主页滚动数字的位数 (5-7位)</div>
+                </div>
+                <div class="segmented-control">
+                    <button class="segment-btn" id="len-5" onclick="setOdoLength(5)">5位</button>
+                    <button class="segment-btn" id="len-6" onclick="setOdoLength(6)">6位</button>
+                    <button class="segment-btn" id="len-7" onclick="setOdoLength(7)">7位</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-row">
+                <div>
+                    <div class="setting-title">深色模式</div>
+                    <div class="setting-desc">切换正常或夜间深色高对比度外观</div>
+                </div>
+                <label class="ios-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme(this.checked)">
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="setting-row">
+                <div>
+                    <div class="setting-title">数据管理</div>
+                    <div class="setting-desc">导出备份到文件，或从文件导入恢复数据</div>
+                </div>
+                <div class="data-action-btns">
+                    <button class="data-btn export" onclick="exportData()">📤 导出数据</button>
+                    <button class="data-btn import" onclick="triggerImport()">📥 导入数据</button>
+                    <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(event)">
+                </div>
+            </div>
+        </div>
     </div>
 
     <nav class="tab-bar">
         <div class="tab-item active" id="tab-assistant" onclick="switchTab('assistant')">
-            <span class="icon">⚡</span>
-            <span>助手</span>
+            <span class="icon">⚡</span><span>助手</span>
         </div>
         <div class="tab-item" id="tab-history" onclick="switchTab('history')">
-            <span class="icon">📜</span>
-            <span>历史</span>
+            <span class="icon">📜</span><span>历史</span>
+        </div>
+        <div class="tab-item" id="tab-setting" onclick="switchTab('setting')">
+            <span class="icon">⚙️</span><span>设置</span>
         </div>
     </nav>
 </div>
@@ -536,6 +784,9 @@ button.main-btn.error-state {
 </div>
 
 <script>
+// ======================================================= -->
+//        【模块六：JS - 全局状态初始化与偏好设置逻辑】        -->
+// ======================================================= -->
 let MAX = Number(localStorage.getItem("maxRange")) || 60;
 let lastOdo = localStorage.getItem("lastOdo") ? Number(localStorage.getItem("lastOdo")) : null;
 let remain = localStorage.getItem("remain") ? Number(localStorage.getItem("remain")) : MAX;
@@ -543,8 +794,13 @@ let historyLog = JSON.parse(localStorage.getItem("historyLog") || "[]");
 let currentOdoRollerVal = Number(localStorage.getItem("currentOdoRollerVal")) || 0;
 let pendingAction = null;
 
+let chargePower = Number(localStorage.getItem("chargePower")) || 200;
+let odoLength = Number(localStorage.getItem("odoLength")) || 5;
+let isDarkTheme = localStorage.getItem("darkTheme") === "true";
+
 const quickHours = [3, 4, 6, 8];
 
+// 选项卡切换
 function switchTab(targetPage) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
@@ -555,11 +811,104 @@ function switchTab(targetPage) {
     }
 }
 
+// 设置充电功率
+function setPower(w) { chargePower = w; localStorage.setItem("chargePower", w); updateSettingUI(); }
+
+// 设置里程表位数（支持数据无损迁移/安全提示）
+function setOdoLength(len) {
+    if (len === odoLength) return;
+    let container = document.getElementById("odoContainer");
+
+    if (len > odoLength) {
+        // 升位：只在前面补零位滚轮，不重建已有滚轮，数字不闪
+        for (let i = odoLength; i < len; i++) {
+            let box = document.createElement("div");
+            box.className = "roller-digit-box";
+            box.id = `odo-box-${i}`;
+            box.innerHTML = "";
+            for (let n = 0; n <= 9; n++) {
+                let div = document.createElement("div");
+                div.className = "roller-item";
+                div.innerText = n;
+                box.appendChild(div);
+            }
+            box.addEventListener("scroll", () => {
+                clearTimeout(box.scrollTimeout);
+                box.scrollTimeout = setTimeout(() => {
+                    let odoVal = getRollerValue('odo', odoLength);
+                    currentOdoRollerVal = odoVal;
+                    localStorage.setItem("currentOdoRollerVal", odoVal);
+                }, 50);
+            });
+            container.insertBefore(box, container.firstChild);
+        }
+        odoLength = len;
+        localStorage.setItem("odoLength", len);
+        updateSettingUI();
+    } else {
+        // 降位
+        let maxAllowed = Math.pow(10, len) - 1;
+        if (currentOdoRollerVal > maxAllowed) {
+            // 值溢出：弹窗确认后重置+重建
+            openConfirmModal("安全提示", "当前里程过大，需要重置数据才可以降低里程表位数。确定要清空并重置吗？", () => {
+                confirmReset();
+                odoLength = len;
+                localStorage.setItem("odoLength", len);
+                createRollerBoxes(container, odoLength, 'odo');
+                void container.offsetHeight;
+                setRollerValue('odo', odoLength, 0);
+                updateSettingUI();
+            });
+            return;
+        }
+        // 值未溢出：只移除前面的零位滚轮，已有数字不变
+        let removeCount = odoLength - len;
+        for (let i = 0; i < removeCount; i++) {
+            container.removeChild(container.firstChild);
+        }
+        odoLength = len;
+        localStorage.setItem("odoLength", len);
+        updateSettingUI();
+    }
+}
+
+// 切换深色模式
+function toggleTheme(isDark) { isDarkTheme = isDark; localStorage.setItem("darkTheme", isDark); document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light'); }
+
+// 更新设置页面 UI 显隐状态
+function updateSettingUI() {
+    [200, 300, 400, 500, 600, 700].forEach(w => {
+        let btn = document.getElementById(`p-${w}`);
+        if(btn) btn.classList.toggle('active', chargePower === w);
+    });
+    let recoveredKm = (chargePower / 200) * 10;
+    document.getElementById("power-desc").innerText = `当前: ${chargePower}W (每小时回复${recoveredKm}km)`;
+
+    [5, 6, 7].forEach(l => {
+        let btn = document.getElementById(`len-${l}`);
+        if(btn) btn.classList.toggle('active', odoLength === l);
+    });
+
+    document.getElementById("themeToggle").checked = isDarkTheme;
+    document.documentElement.setAttribute('data-theme', isDarkTheme ? 'dark' : 'light');
+}
+
+// 数据持久化缓存
+function save() { localStorage.setItem("lastOdo", lastOdo ?? ""); localStorage.setItem("remain", remain); localStorage.setItem("maxRange", MAX); localStorage.setItem("historyLog", JSON.stringify(historyLog)); }
+function updateLastOdo() { let found = historyLog.find(log => log.type === 'calc' && log.odo); lastOdo = found ? found.odo : null; }
+
+
+// ======================================================= -->
+//        【模块七：JS - 核心计算、滚轮交互与图表渲染】        -->
+// ======================================================= -->
+
+// 初始化滚轮组件
 function initRollers() {
-    createRollerBoxes(document.getElementById("odoContainer"), 5, 'odo');
+    createRollerBoxes(document.getElementById("odoContainer"), odoLength, 'odo');
     createRollerBoxes(document.getElementById("hour-box-wrapper"), 1, 'hour');
 }
 
+// 动态创建滚轮 DOM
 function createRollerBoxes(parent, count, type) {
     parent.innerHTML = "";
     for (let i = count - 1; i >= 0; i--) {
@@ -585,25 +934,25 @@ function createRollerBoxes(parent, count, type) {
             if (type === 'hour') {
                 quickHours.forEach(h => document.getElementById(`btn-${h}h`).classList.remove("active"));
             }
-            let val = Math.round(box.scrollTop / 62); // 🌟 适配加高后的 62px 滚动高度
+            let val = Math.round(box.scrollTop / 62);
             if (type === 'hour') {
                 if (quickHours.includes(val)) {
                     document.getElementById(`btn-${val}h`).classList.add("active");
                 }
             } else {
-                setTimeout(() => {
-                    let odoVal = getRollerValue('odo', 5);
+                clearTimeout(box.scrollTimeout);
+                box.scrollTimeout = setTimeout(() => {
+                    let odoVal = getRollerValue('odo', odoLength);
+                    currentOdoRollerVal = odoVal;
                     localStorage.setItem("currentOdoRollerVal", odoVal);
                 }, 50);
             }
         });
-        
-        if(type !== 'hour') {
-            parent.appendChild(box);
-        }
+        if(type !== 'hour') { parent.appendChild(box); }
     }
 }
 
+// 获取当前滚轮代表的数值
 function getRollerValue(type, count) {
     let val = 0;
     for (let i = count - 1; i >= 0; i--) {
@@ -615,28 +964,25 @@ function getRollerValue(type, count) {
     return val;
 }
 
+// 驱动滚轮滚动到指定数值
 function setRollerValue(type, count, val) {
     let valStr = String(val).padStart(count, '0');
+    if(valStr.length > count) { valStr = valStr.substring(valStr.length - count); }
     for (let i = 0; i < count; i++) {
         let box = document.getElementById(`${type}-box-${i}`);
         if (box) box.scrollTop = Number(valStr[count - 1 - i]) * 62;
     }
-    if (type === 'odo') {
-        localStorage.setItem("currentOdoRollerVal", val);
-    }
+    if (type === 'odo') { localStorage.setItem("currentOdoRollerVal", val); }
 }
 
+// 快速充电时间快捷键
 function setQuickHour(h) { 
     let currentVal = getRollerValue('hour', 1);
-    if(currentVal === h) {
-        setRollerValue('hour', 1, 0); 
-    } else {
-        setRollerValue('hour', 1, h); 
-    }
+    if(currentVal === h) { setRollerValue('hour', 1, 0); } 
+    else { setRollerValue('hour', 1, h); }
 }
-function save() { localStorage.setItem("lastOdo", lastOdo ?? ""); localStorage.setItem("remain", remain); localStorage.setItem("maxRange", MAX); localStorage.setItem("historyLog", JSON.stringify(historyLog)); }
-function updateLastOdo() { let found = historyLog.find(log => log.type === 'calc' && log.odo); lastOdo = found ? found.odo : null; }
 
+// 统计今日与当月骑行数据
 function calculateStats() {
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
@@ -652,12 +998,8 @@ function calculateStats() {
             const datePart = log.time.split(" ")[0];
             const monthPart = parseInt(datePart.split("-")[0]);
 
-            if (datePart === todayLabel) {
-                totalTodayMileage += mileage;
-            }
-            if (monthPart === currentMonth) {
-                totalMonthMileage += mileage;
-            }
+            if (datePart === todayLabel) totalTodayMileage += mileage;
+            if (monthPart === currentMonth) totalMonthMileage += mileage;
         }
     });
 
@@ -665,12 +1007,12 @@ function calculateStats() {
     document.getElementById("stat-month").innerHTML = `${totalMonthMileage.toFixed(1)}<span class="unit">km</span>`;
 }
 
+// 渲染柱状统计图弹窗（周趋势/年趋势）
 function openChartModal(type) {
     const now = new Date();
     document.getElementById("confirmText").innerText = ""; 
     document.getElementById("confirmActionBtn").style.display = "none"; 
     document.getElementById("cancelActionBtn").innerText = "关闭";
-    
     let chartHtml = '<div class="chart-container">';
     
     if (type === 'week') {
@@ -728,7 +1070,7 @@ function openChartModal(type) {
             chartHtml += `
                 <div class="chart-bar-wrapper">
                     <div class="chart-bar-val">${val > 0 ? val.toFixed(0) : '0'}</div>
-                    <div class="chart-bar" style="height: ${height}px; background-color: var(--ios-green);"></div>
+                    <div class="chart-bar chart-bar-max" style="height: ${height}px;"></div>
                     <div class="chart-label">${label}</div>
                 </div>`;
         });
@@ -738,6 +1080,7 @@ function openChartModal(type) {
     document.getElementById("confirmModal").style.display = "flex";
 }
 
+// 刷新主页续航条与历史记录列表 DOM
 function render() {
     updateLastOdo();
     document.getElementById("remain").innerText = Number(remain.toFixed(1)) + "km";
@@ -749,89 +1092,81 @@ function render() {
     else fill.style.background = "var(--ios-red)";
 
     let listHtml = historyLog.length === 0 ? "<div style='color:var(--ios-text-secondary);text-align:center;margin-top:40px;font-size:15px;'>暂无历史记录</div>" : "";
-    historyLog.forEach(log => {
+    historyLog.forEach((log, index) => {
         let typeText = log.type === 'calc' ? "⚡ 计算更新" : (log.type === 'full' ? "🟢 恢复满电" : "⚙️ 修改总续航");
+        let deleteBtn = index === 0 ? `<button class="delete-log-btn" onclick="openDeleteModal('${log.id}')">删除</button>` : '';
         listHtml += `<div class="history-item">
             <div class="history-content">
                 <div class="history-time">${log.time}</div>
                 <div class="history-data">${typeText}<br/><b>剩余:</b> ${log.remain} km ${log.odo ? `| <b>总里程:</b> ${log.odo} km` : ''} ${log.used ? `| <b>骑行:</b> ${log.used} km` : ''} ${log.hour ? `| <b>充电:</b> ${log.hour}h` : ''}</div>
             </div>
-            <button class="delete-log-btn" onclick="openDeleteModal('${log.id}')">删除</button>
+            ${deleteBtn}
         </div>`;
     });
     document.getElementById("historyList").innerHTML = listHtml;
-    
-    if(document.getElementById("page-history").classList.contains("active")) {
-        calculateStats();
-    }
+    if(document.getElementById("page-history").classList.contains("active")) { calculateStats(); }
 }
 
-// ⚡ 计算并保存
+// 核心功能：计算并保存当前骑行与充电数据
 function calc() {
-    let odo = getRollerValue('odo', 5);
+    let odo = getRollerValue('odo', odoLength);
     let hour = getRollerValue('hour', 1);
     const btn = document.getElementById("calcBtn");
     updateLastOdo();
 
     let isOdoUnchanged = (lastOdo !== null) ? (odo === lastOdo) : (odo === 0);
-    
     if (isOdoUnchanged && hour === 0) {
         btn.classList.add("error-state");
         btn.innerText = "❌ 无可计算保存信息";
-        setTimeout(() => {
-            btn.classList.remove("error-state");
-            btn.innerText = "计算并保存";
-        }, 1200);
+        setTimeout(() => { btn.classList.remove("error-state"); btn.innerText = "计算并保存"; }, 1200);
         return; 
     }
 
     let usedLog = null;
     if (odo !== 0) {
-        if (lastOdo !== null && odo < lastOdo) { openConfirmModal("里程输入错误", `当前总里程 (${odo} km) 不能小于上次记录 (${lastOdo} km)，请重新核对。`, null); return; }
+        if (lastOdo !== null && odo < lastOdo) { openConfirmModal("里程输入错误", `当前总里程 (${odo} km) 不能小于上次记录 (${lastOdo} km)，请重新核对。`, () => { setRollerValue('odo', odoLength, lastOdo); currentOdoRollerVal = lastOdo; localStorage.setItem("currentOdoRollerVal", lastOdo); }); return; }
         if (lastOdo !== null) { usedLog = Number((odo - lastOdo).toFixed(1)); remain -= usedLog; }
         lastOdo = odo;
     }
-    if (hour > 0) remain += hour * 10;
+    
+    if (hour > 0) {
+        let recoveredPerHours = (chargePower / 200) * 10;
+        remain += hour * recoveredPerHours;
+    }
+    
     remain = Math.max(0, Math.min(MAX, remain));
     historyLog.unshift({ id: Date.now() + Math.random().toString(36).substr(2, 5), time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`, type: 'calc', odo: odo || null, used: usedLog, hour: hour || null, remain: Number(remain.toFixed(1)) });
     if (historyLog.length > 50) historyLog.pop();
+    
+    currentOdoRollerVal = odo; 
+    localStorage.setItem("currentOdoRollerVal", odo);
     setRollerValue('hour', 1, 0);
     save(); render();
 
     btn.classList.add("success-state");
     btn.innerText = "✔ 已保存!";
-    setTimeout(() => {
-        btn.classList.remove("success-state");
-        btn.innerText = "计算并保存";
-    }, 800);
+    setTimeout(() => { btn.classList.remove("success-state"); btn.innerText = "计算并保存"; }, 800);
 }
 
-// 🟢 恢复满电
+// 快捷操作：恢复满电
 function full() { 
     const btn = document.getElementById("fullBtn");
-
     if (remain === MAX) {
         btn.classList.add("error-state");
         btn.innerText = "❌ 当前已满电!";
-        setTimeout(() => {
-            btn.classList.remove("error-state");
-            btn.innerText = "恢复满电";
-        }, 1200);
+        setTimeout(() => { btn.classList.remove("error-state"); btn.innerText = "恢复满电"; }, 1200);
         return; 
     }
-
     remain = MAX; 
     historyLog.unshift({ id: Date.now().toString(), time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`, type: 'full', remain: MAX }); 
     save(); render(); 
 
     btn.classList.add("full-success-state");
     btn.innerText = "✔ 已恢复满电!";
-    setTimeout(() => {
-        btn.classList.remove("full-success-state");
-        btn.innerText = "恢复满电";
-    }, 800);
+    setTimeout(() => { btn.classList.remove("full-success-state"); btn.innerText = "恢复满电"; }, 800);
 }
 
+// 模态弹窗打开/关闭/行为分发器
 function openConfirmModal(title, text, action) { 
     document.getElementById("modalChartContainer").innerHTML = ""; 
     document.getElementById("confirmActionBtn").style.display = "block"; 
@@ -847,15 +1182,114 @@ document.getElementById("confirmActionBtn").onclick = () => { if(pendingAction) 
 function openModal() { openConfirmModal("提示", "确定要重置所有数据和历史记录吗？", confirmReset); }
 function openDeleteModal(id) { openConfirmModal("确认删除", "确认删除这条历史数据吗？", () => confirmDeleteLog(id)); }
 function confirmDeleteLog(id) { let idx = historyLog.findIndex(log => log.id === id); if (idx !== -1) { historyLog.splice(idx, 1); remain = historyLog.length === 0 ? MAX : historyLog[0].remain; setRollerValue('hour', 1, 0); save(); render(); } }
-function confirmReset() { localStorage.clear(); lastOdo = null; MAX = 60; remain = MAX; historyLog = []; setRollerValue('odo', 5, 0); setRollerValue('hour', 1, 0); save(); render(); }
+
+// 数据导出
+function exportData() {
+    let data = {
+        version: "1.6.0.0",
+        exportTime: new Date().toISOString(),
+        maxRange: MAX,
+        lastOdo: lastOdo,
+        remain: remain,
+        historyLog: historyLog,
+        currentOdoRollerVal: currentOdoRollerVal,
+        chargePower: chargePower,
+        odoLength: odoLength,
+        darkTheme: isDarkTheme
+    };
+    let json = JSON.stringify(data, null, 2);
+    let blob = new Blob([json], { type: "application/json" });
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+    let dateStr = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`;
+    a.href = url;
+    a.download = `续航助手备份_${dateStr}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// 数据导入触发
+function triggerImport() { document.getElementById("importFileInput").click(); }
+
+// 数据导入处理
+function importData(event) {
+    let file = event.target.files[0];
+    if (!file) return;
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            let data = JSON.parse(e.target.result);
+            if (!data.version || !data.maxRange) {
+                openConfirmModal("导入失败", "文件格式不正确，不是有效的续航助手备份文件。", null);
+                return;
+            }
+            openConfirmModal("确认导入", `导入将替换当前所有数据（文件导出时间：${data.exportTime ? new Date(data.exportTime).toLocaleString('zh-CN') : '未知'}）。确定要导入吗？`, () => {
+                localStorage.clear();
+                MAX = Number(data.maxRange) || 60;
+                lastOdo = data.lastOdo != null ? Number(data.lastOdo) : null;
+                remain = Number(data.remain) || MAX;
+                historyLog = data.historyLog || [];
+                currentOdoRollerVal = Number(data.currentOdoRollerVal) || 0;
+                chargePower = Number(data.chargePower) || 200;
+                odoLength = Number(data.odoLength) || 5;
+                isDarkTheme = data.darkTheme === true;
+                localStorage.setItem("maxRange", MAX);
+                localStorage.setItem("lastOdo", lastOdo ?? "");
+                localStorage.setItem("remain", remain);
+                localStorage.setItem("historyLog", JSON.stringify(historyLog));
+                localStorage.setItem("currentOdoRollerVal", currentOdoRollerVal);
+                localStorage.setItem("chargePower", chargePower);
+                localStorage.setItem("odoLength", odoLength);
+                localStorage.setItem("darkTheme", isDarkTheme);
+                document.getElementById("themeToggle").checked = isDarkTheme;
+                document.documentElement.setAttribute('data-theme', isDarkTheme ? 'dark' : 'light');
+                createRollerBoxes(document.getElementById("odoContainer"), odoLength, 'odo');
+                void document.getElementById("odoContainer").offsetHeight;
+                setRollerValue('odo', odoLength, currentOdoRollerVal);
+                updateSettingUI();
+                save();
+                render();
+            });
+        } catch (err) {
+            openConfirmModal("导入失败", "文件解析出错，请确认是有效的JSON备份文件。", null);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = "";
+}
+
+// 全局重置数据
+function confirmReset() { 
+    localStorage.clear(); 
+    lastOdo = null; 
+    MAX = 60; 
+    remain = MAX; 
+    historyLog = []; 
+    currentOdoRollerVal = 0;
+    chargePower = 200;
+    odoLength = 5;
+    isDarkTheme = false;
+    setRollerValue('odo', odoLength, 0); 
+    setRollerValue('hour', 1, 0); 
+    save(); 
+    updateSettingUI();
+    render(); 
+}
+
+// 修改总续航上限上限逻辑
 function startEdit() { document.getElementById("remain").style.display = "none"; document.getElementById("setBtn").style.display = "none"; document.getElementById("editBox").style.display = "flex"; document.getElementById("maxInput").value = MAX; }
 function cancelEdit() { document.getElementById("editBox").style.display = "none"; document.getElementById("remain").style.display = "block"; document.getElementById("setBtn").style.display = "flex"; }
 function saveMax() { let v = Number(document.getElementById("maxInput").value); if(v > 0) { MAX = v; remain = v; historyLog.unshift({ id: Date.now().toString(), time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`, type: 'edit', remain: MAX }); save(); render(); } cancelEdit(); }
 
+// 页面初始化装载
 initRollers();
-setTimeout(() => { setRollerValue('odo', 5, currentOdoRollerVal); setRollerValue('hour', 1, 0); }, 100);
+updateSettingUI();
+void document.getElementById("odoContainer").offsetHeight;
+setRollerValue('odo', odoLength, currentOdoRollerVal);
+setRollerValue('hour', 1, 0);
 render();
 
+// 离线 PWA 更新机制
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
@@ -874,10 +1308,7 @@ if ('serviceWorker' in navigator) {
     });
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
-        }
+        if (!refreshing) { refreshing = true; window.location.reload(); }
     });
 }
 </script>
