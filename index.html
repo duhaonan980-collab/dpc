@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>电瓶车续航助手</title>
 
+<!-- PWA / iOS App 配置 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="续航助手">
+<meta name="theme-color" content="#007AFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="app-icon-ios26.png">
+
 <style>
 /* --- iOS 18 Specific Styles --- */
 :root {
@@ -60,6 +72,7 @@ body {
 .page {
     display: none;
     padding: 20px 16px;
+    padding-top: calc(20px + env(safe-area-inset-top));
     animation: fadeIn 0.2s ease-out;
 }
 .page.active {
