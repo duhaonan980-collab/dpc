@@ -674,7 +674,7 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
             <button class="main-btn reset" onclick="openModal()">重置数据</button>
         </div>
         
-        <div class="version-tag">Version 1.6.0.0</div>
+        <div class="version-tag">Version 1.6.0.1</div>
     </div>
 
     <div id="page-history" class="page">
@@ -1186,7 +1186,7 @@ function confirmDeleteLog(id) { let idx = historyLog.findIndex(log => log.id ===
 // 数据导出
 function exportData() {
     let data = {
-        version: "1.6.0.0",
+        version: "1.6.0.1",
         exportTime: new Date().toISOString(),
         maxRange: MAX,
         lastOdo: lastOdo,
@@ -1244,11 +1244,14 @@ function importData(event) {
                 document.getElementById("themeToggle").checked = isDarkTheme;
                 document.documentElement.setAttribute('data-theme', isDarkTheme ? 'dark' : 'light');
                 createRollerBoxes(document.getElementById("odoContainer"), odoLength, 'odo');
-                void document.getElementById("odoContainer").offsetHeight;
-                setRollerValue('odo', odoLength, currentOdoRollerVal);
-                updateSettingUI();
-                save();
-                render();
+                requestAnimationFrame(() => {
+                    void document.getElementById("odoContainer").offsetHeight;
+                    setRollerValue('odo', odoLength, currentOdoRollerVal);
+                    setRollerValue('hour', 1, 0);
+                    updateSettingUI();
+                    save();
+                    render();
+                });
             });
         } catch (err) {
             openConfirmModal("导入失败", "文件解析出错，请确认是有效的JSON备份文件。", null);
