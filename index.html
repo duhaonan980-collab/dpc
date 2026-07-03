@@ -674,7 +674,7 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
             <button class="main-btn reset" onclick="openModal()">重置数据</button>
         </div>
         
-        <div class="version-tag">Version 1.6.0.1</div>
+        <div class="version-tag">Version 1.6.0.3</div>
     </div>
 
     <div id="page-history" class="page">
@@ -968,10 +968,22 @@ function getRollerValue(type, count) {
 function setRollerValue(type, count, val) {
     let valStr = String(val).padStart(count, '0');
     if(valStr.length > count) { valStr = valStr.substring(valStr.length - count); }
+    // 临时关闭scroll-snap防止浏览器弹回snap起点
+    for (let i = 0; i < count; i++) {
+        let box = document.getElementById(`${type}-box-${i}`);
+        if (box) box.style.scrollSnapType = 'none';
+    }
     for (let i = 0; i < count; i++) {
         let box = document.getElementById(`${type}-box-${i}`);
         if (box) box.scrollTop = Number(valStr[count - 1 - i]) * 62;
     }
+    // 恢复scroll-snap
+    requestAnimationFrame(() => {
+        for (let i = 0; i < count; i++) {
+            let box = document.getElementById(`${type}-box-${i}`);
+            if (box) box.style.scrollSnapType = '';
+        }
+    });
     if (type === 'odo') { localStorage.setItem("currentOdoRollerVal", val); }
 }
 
@@ -1186,7 +1198,7 @@ function confirmDeleteLog(id) { let idx = historyLog.findIndex(log => log.id ===
 // 数据导出
 function exportData() {
     let data = {
-        version: "1.6.0.1",
+        version: "1.6.0.3",
         exportTime: new Date().toISOString(),
         maxRange: MAX,
         lastOdo: lastOdo,
@@ -1244,8 +1256,8 @@ function importData(event) {
                 document.getElementById("themeToggle").checked = isDarkTheme;
                 document.documentElement.setAttribute('data-theme', isDarkTheme ? 'dark' : 'light');
                 createRollerBoxes(document.getElementById("odoContainer"), odoLength, 'odo');
+                // 等DOM渲染完成再设值（setRollerValue内部已处理scroll-snap）
                 requestAnimationFrame(() => {
-                    void document.getElementById("odoContainer").offsetHeight;
                     setRollerValue('odo', odoLength, currentOdoRollerVal);
                     setRollerValue('hour', 1, 0);
                     updateSettingUI();
