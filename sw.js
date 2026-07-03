@@ -49,7 +49,7 @@ self.addEventListener('fetch', (e) => {
   );
 });
 
-// 监听从 index.html 发来的“跳过等待”强制更新指令
+// 监听从 index.html 发来的"跳过等待"强制更新指令
 self.addEventListener('message', (e) => {
   if (e.data && e.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
