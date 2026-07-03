@@ -212,46 +212,37 @@ label {
     box-sizing: border-box;
     transition: background-color 0.3s, border-color 0.3s;
 }
-/* 充电时间：滚轮与按钮分列，像今日骑行/本月骑行那样中间隔开 */
-.charge-pair {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
+/* 充电时间：统一毛玻璃大框，滚轮与按钮之间竖线分隔 */
+.charge-layout {
+    gap: 0;
 }
-.charge-roller-half {
-    width: 30%;
+.charge-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--ios-border);
+    margin: 0 6px;
+    align-self: center;
+    border-radius: 1px;
 }
-.charge-btn-group {
-    display: flex;
-    width: 65%;
-    gap: 4px;
-    background: var(--ios-bg);
-    padding: 4px;
-    border-radius: 12px;
-    border: 0.5px solid var(--ios-border);
-    box-sizing: border-box;
-    transition: background-color 0.3s, border-color 0.3s;
-}
-/* 充电滚轮 */
 .roller-digit-box#hour-box-wrapper {
     overflow-y: auto !important;
     scroll-snap-type: y mandatory !important;
     height: 62px !important;
+    flex: 1.2;
 }
 #hour-box-wrapper .roller-item {
     height: 62px;
     line-height: 62px;
     font-size: 32px;
 }
-/* 充电按钮：字号独立，不继承滚轮属性 */
+/* 充电按钮 */
 .charge-btn-cell {
     position: relative;
     flex: 1;
     height: 62px;
     background: var(--ios-card-bg);
     border-radius: 10px;
-    margin: 0;
+    margin: 0 4px;
     border: 0.5px solid var(--ios-border);
     box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     cursor: pointer;
@@ -812,13 +803,10 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
         <div class="setting-group">
             <div class="setting-row" style="flex-direction:column;align-items:stretch;">
                 <label>充电时间</label>
-                <div class="charge-pair">
-                    <div class="roller-wrapper charge-roller-half">
-                        <div class="roller-container" id="chargeContainer">
-                            <div class="roller-digit-box" id="hour-box-wrapper"></div>
-                        </div>
-                    </div>
-                    <div class="charge-btn-group">
+                <div class="roller-wrapper">
+                    <div class="roller-container charge-layout" id="chargeContainer">
+                        <div class="roller-digit-box" id="hour-box-wrapper"></div>
+                        <div class="charge-divider"></div>
                         <button class="charge-btn-cell" id="btn-3h" onclick="setQuickHour(3)">3h</button>
                         <button class="charge-btn-cell" id="btn-4h" onclick="setQuickHour(4)">4h</button>
                         <button class="charge-btn-cell" id="btn-6h" onclick="setQuickHour(6)">6h</button>
