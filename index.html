@@ -825,6 +825,7 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
     justify-content: space-between;
     align-items: center;
     padding: 14px 20px;
+    padding-top: calc(14px + env(safe-area-inset-top));
     border-bottom: 0.5px solid var(--ios-border);
 }
 .full-history-header h3 {
@@ -943,7 +944,7 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
             </div>
         </div>
         
-        <div class="version-tag">Version 1.6.1.1</div>
+        <div class="version-tag">Version 1.6.2.0</div>
     </div>
 
     <div id="page-history" class="page">
@@ -1082,6 +1083,7 @@ let isDarkTheme = localStorage.getItem("darkTheme") === "true";
 
 const quickHours = [3, 4, 6, 8];
 const ROLLER_ITEM_HEIGHT = 62; // 滚轮单格高度，CSS和JS共用此值
+const ROLLER_COPIES = 3; // 滚轮循环副本数（3组0-9实现无限滚动）
 
 // 选项卡切换
 function switchTab(targetPage) {
@@ -1109,11 +1111,13 @@ function setOdoLength(len) {
             box.className = "roller-digit-box";
             box.id = `odo-box-${i}`;
             box.innerHTML = "";
-            for (let n = 0; n <= 9; n++) {
-                let div = document.createElement("div");
-                div.className = "roller-item";
-                div.innerText = n;
-                box.appendChild(div);
+            for (let c = 0; c < ROLLER_COPIES; c++) {
+                for (let n = 0; n <= 9; n++) {
+                    let div = document.createElement("div");
+                    div.className = "roller-item";
+                    div.innerText = n;
+                    box.appendChild(div);
+                }
             }
             box.addEventListener("scroll", () => {
                 clearTimeout(box.scrollTimeout);
@@ -1122,8 +1126,24 @@ function setOdoLength(len) {
                     currentOdoRollerVal = odoVal;
                     localStorage.setItem("currentOdoRollerVal", odoVal);
                 }, 50);
+                clearTimeout(box._loopTimer);
+                box._loopTimer = setTimeout(() => {
+                    let idx = Math.round(box.scrollTop / ROLLER_ITEM_HEIGHT);
+                    if (idx <= 2) {
+                        box.style.scrollSnapType = 'none';
+                        box.scrollTop += 10 * ROLLER_ITEM_HEIGHT;
+                        void box.offsetHeight;
+                        box.style.scrollSnapType = '';
+                    } else if (idx >= ROLLER_COPIES * 10 - 3) {
+                        box.style.scrollSnapType = 'none';
+                        box.scrollTop -= 10 * ROLLER_ITEM_HEIGHT;
+                        void box.offsetHeight;
+                        box.style.scrollSnapType = '';
+                    }
+                }, 80);
             });
             container.insertBefore(box, container.firstChild);
+            box.scrollTop = 10 * ROLLER_ITEM_HEIGHT; // 初始定位到中间副本 digit 0
         }
         odoLength = len;
         localStorage.setItem("odoLength", len);
@@ -1191,7 +1211,7 @@ function initRollers() {
     createRollerBoxes(document.getElementById("hour-box-wrapper"), 1, 'hour');
 }
 
-// 动态创建滚轮 DOM
+// 动态创建滚轮 DOM（3组0-9循环，实现无限滚动）
 function createRollerBoxes(parent, count, type) {
     parent.innerHTML = "";
     for (let i = count - 1; i >= 0; i--) {
@@ -1206,19 +1226,19 @@ function createRollerBoxes(parent, count, type) {
         }
         
         box.innerHTML = ""; 
-        for (let n = 0; n <= 9; n++) {
-            let div = document.createElement("div");
-            div.className = "roller-item";
-            div.innerText = n;
-            box.appendChild(div);
+        for (let c = 0; c < ROLLER_COPIES; c++) {
+            for (let n = 0; n <= 9; n++) {
+                let div = document.createElement("div");
+                div.className = "roller-item";
+                div.innerText = n;
+                box.appendChild(div);
+            }
         }
         
         box.addEventListener("scroll", () => {
+            let val = ((Math.round(box.scrollTop / ROLLER_ITEM_HEIGHT) % 10) + 10) % 10;
             if (type === 'hour') {
                 quickHours.forEach(h => document.getElementById(`btn-${h}h`).classList.remove("active"));
-            }
-            let val = Math.round(box.scrollTop / ROLLER_ITEM_HEIGHT);
-            if (type === 'hour') {
                 if (quickHours.includes(val)) {
                     document.getElementById(`btn-${val}h`).classList.add("active");
                 }
@@ -1230,6 +1250,22 @@ function createRollerBoxes(parent, count, type) {
                     localStorage.setItem("currentOdoRollerVal", odoVal);
                 }, 50);
             }
+            // 循环：接近边缘时静默跳回中间副本
+            clearTimeout(box._loopTimer);
+            box._loopTimer = setTimeout(() => {
+                let idx = Math.round(box.scrollTop / ROLLER_ITEM_HEIGHT);
+                if (idx <= 2) {
+                    box.style.scrollSnapType = 'none';
+                    box.scrollTop += 10 * ROLLER_ITEM_HEIGHT;
+                    void box.offsetHeight;
+                    box.style.scrollSnapType = '';
+                } else if (idx >= ROLLER_COPIES * 10 - 3) {
+                    box.style.scrollSnapType = 'none';
+                    box.scrollTop -= 10 * ROLLER_ITEM_HEIGHT;
+                    void box.offsetHeight;
+                    box.style.scrollSnapType = '';
+                }
+            }, 80);
         });
         if(type !== 'hour') { parent.appendChild(box); }
     }
@@ -1241,7 +1277,7 @@ function getRollerValue(type, count) {
     for (let i = count - 1; i >= 0; i--) {
         let box = document.getElementById(`${type}-box-${i}`);
         if(!box) return 0;
-        let digit = Math.round(box.scrollTop / ROLLER_ITEM_HEIGHT);
+        let digit = ((Math.round(box.scrollTop / ROLLER_ITEM_HEIGHT) % 10) + 10) % 10;
         val = val * 10 + digit;
     }
     return val;
@@ -1261,7 +1297,7 @@ function setRollerValue(type, count, val) {
     }
     for (let i = 0; i < count; i++) {
         let box = document.getElementById(`${type}-box-${i}`);
-        if (box) box.scrollTop = Number(valStr[count - 1 - i]) * ROLLER_ITEM_HEIGHT;
+        if (box) box.scrollTop = (10 + Number(valStr[count - 1 - i])) * ROLLER_ITEM_HEIGHT;
     }
     // scrollTop已设好，恢复scroll-snap（当前位置正好在snap点上，不会弹回）
     for (let i = 0; i < count; i++) {
@@ -1588,7 +1624,7 @@ function deleteFromFullHistory(id) {
 // 数据导出
 function exportData() {
     let data = {
-        version: "1.6.1.1",
+        version: "1.6.2.0",
         exportTime: new Date().toISOString(),
         maxRange: MAX,
         lastOdo: lastOdo,
