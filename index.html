@@ -674,7 +674,7 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
             <button class="main-btn reset" onclick="openModal()">重置数据</button>
         </div>
         
-        <div class="version-tag">Version 1.6.0.3</div>
+        <div class="version-tag">Version 1.6.0.4</div>
     </div>
 
     <div id="page-history" class="page">
@@ -968,22 +968,23 @@ function getRollerValue(type, count) {
 function setRollerValue(type, count, val) {
     let valStr = String(val).padStart(count, '0');
     if(valStr.length > count) { valStr = valStr.substring(valStr.length - count); }
-    // 临时关闭scroll-snap防止浏览器弹回snap起点
+    // 临时关闭scroll-snap，强制重排后再设scrollTop，防止snap弹回
     for (let i = 0; i < count; i++) {
         let box = document.getElementById(`${type}-box-${i}`);
-        if (box) box.style.scrollSnapType = 'none';
+        if (box) {
+            box.style.scrollSnapType = 'none';
+            void box.offsetHeight; // 强制同步重排，让snap关闭生效
+        }
     }
     for (let i = 0; i < count; i++) {
         let box = document.getElementById(`${type}-box-${i}`);
         if (box) box.scrollTop = Number(valStr[count - 1 - i]) * 62;
     }
-    // 恢复scroll-snap
-    requestAnimationFrame(() => {
-        for (let i = 0; i < count; i++) {
-            let box = document.getElementById(`${type}-box-${i}`);
-            if (box) box.style.scrollSnapType = '';
-        }
-    });
+    // scrollTop已设好，恢复scroll-snap（当前位置正好在snap点上，不会弹回）
+    for (let i = 0; i < count; i++) {
+        let box = document.getElementById(`${type}-box-${i}`);
+        if (box) box.style.scrollSnapType = '';
+    }
     if (type === 'odo') { localStorage.setItem("currentOdoRollerVal", val); }
 }
 
@@ -1198,7 +1199,7 @@ function confirmDeleteLog(id) { let idx = historyLog.findIndex(log => log.id ===
 // 数据导出
 function exportData() {
     let data = {
-        version: "1.6.0.3",
+        version: "1.6.0.4",
         exportTime: new Date().toISOString(),
         maxRange: MAX,
         lastOdo: lastOdo,
@@ -1253,17 +1254,8 @@ function importData(event) {
                 localStorage.setItem("chargePower", chargePower);
                 localStorage.setItem("odoLength", odoLength);
                 localStorage.setItem("darkTheme", isDarkTheme);
-                document.getElementById("themeToggle").checked = isDarkTheme;
-                document.documentElement.setAttribute('data-theme', isDarkTheme ? 'dark' : 'light');
-                createRollerBoxes(document.getElementById("odoContainer"), odoLength, 'odo');
-                // 等DOM渲染完成再设值（setRollerValue内部已处理scroll-snap）
-                requestAnimationFrame(() => {
-                    setRollerValue('odo', odoLength, currentOdoRollerVal);
-                    setRollerValue('hour', 1, 0);
-                    updateSettingUI();
-                    save();
-                    render();
-                });
+                // 导入完成后刷新页面，确保所有数据与UI彻底同步
+                location.reload();
             });
         } catch (err) {
             openConfirmModal("导入失败", "文件解析出错，请确认是有效的JSON备份文件。", null);
