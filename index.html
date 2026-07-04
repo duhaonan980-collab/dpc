@@ -1034,6 +1034,41 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
 }
 .ble-main-sync.show { display: inline; }
 .ble-main-sync:active { opacity: 0.6; }
+
+.ble-notify-box {
+    display: none;
+    margin-top: 10px;
+    padding: 12px;
+    background: rgba(0,122,255,0.06);
+    border: 1px solid rgba(0,122,255,0.15);
+    border-radius: 12px;
+    width: 100%;
+}
+.ble-notify-box.show { display: block; }
+[data-theme="dark"] .ble-notify-box { background: rgba(10,132,255,0.08); border-color: rgba(10,132,255,0.18); }
+.ble-notify-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+.ble-notify-header .setting-title { font-size: 14px; }
+.ble-notify-count { font-size: 12px; color: var(--ios-text-secondary); }
+.ble-notify-log {
+    margin-top: 8px;
+    padding: 10px;
+    background: var(--ios-bg);
+    border-radius: 8px;
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--ios-text-secondary);
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.5;
+}
+.ble-notify-btns { display: flex; gap: 8px; margin-top: 8px; width: 100%; }
 </style>
 </head>
 <body>
@@ -1215,6 +1250,18 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
                 </div>
                 <button class="ble-advanced-toggle" id="ble-adv-toggle" onclick="toggleBleAdvanced()">▸ 高级配置（协议参数）</button>
                 <div class="ble-advanced" id="ble-advanced">
+                    <div class="ble-notify-box" id="ble-notify-box">
+                        <div class="ble-notify-header">
+                            <div class="setting-title">📡 通知监听</div>
+                            <div class="ble-notify-count" id="ble-notify-count">等待数据...</div>
+                        </div>
+                        <div class="ble-notify-log" id="ble-notify-log">正在订阅所有通知特征值...</div>
+                        <div class="ble-smart-search">
+                            <input type="number" id="ble-target-odo" placeholder="输入仪表里程（如 5320）" step="1">
+                            <button class="ble-btn connect" onclick="smartSearchNotifyData()">🔍 智能匹配</button>
+                        </div>
+                        <div class="ble-match-result" id="ble-match-result"></div>
+                    </div>
                     <div class="ble-config-row">
                         <label>Service UUID</label>
                         <input type="text" id="cfg-odo-service" placeholder="如 0000fff0-0000-1000-8000-00805f9b34fb" onblur="saveBleConfig()">
@@ -1243,11 +1290,6 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
                     </div>
                     <button class="ble-btn sync" style="margin-top:10px" onclick="readAllBleData()">📋 读取所有特征值</button>
                     <div class="ble-raw-data" id="ble-raw-data"></div>
-                    <div class="ble-smart-search">
-                        <input type="number" id="ble-target-odo" placeholder="输入仪表里程（如 5320）" step="1">
-                        <button class="ble-btn connect" onclick="smartSearchBleOdo()">🔍 智能匹配</button>
-                    </div>
-                    <div class="ble-match-result" id="ble-match-result"></div>
                 </div>
             </div>
         </div>
@@ -1988,6 +2030,11 @@ let bleOdoLen = Number(localStorage.getItem("bleOdoLen")) || 2;
 let bleOdoFactor = Number(localStorage.getItem("bleOdoFactor")) || 0.1;
 let bleOdoEndian = localStorage.getItem("bleOdoEndian") || "little";
 
+// 通知监听相关
+let bleNotifyChars = [];     // 已订阅的通知特征值
+let bleNotifyData = [];      // 收到的所有通知数据 [{charUuid, bytes, timestamp}]
+let bleNotifySubscribed = false;
+
 function isBleSupported() { return 'bluetooth' in navigator; }
 
 function updateBleUI() {
@@ -2033,6 +2080,12 @@ function updateBleUI() {
     lastSyncEl.innerText = bleLastSync ? ("上次同步: " + bleLastSync) : "";
     if (autoToggle) autoToggle.checked = bleAutoSync;
 
+    // 通知监听区域：仅连接后展开高级时显示
+    let notifyBox = document.getElementById("ble-notify-box");
+    if (notifyBox) {
+        notifyBox.classList.toggle("show", bleConnected && document.getElementById("ble-advanced").classList.contains("show"));
+    }
+
     let sEl = document.getElementById("cfg-odo-service");
     if (sEl) {
         sEl.value = bleOdoService;
@@ -2074,6 +2127,9 @@ async function connectBike() {
         bleServer = bleDevice.gatt;
         bleConnected = true;
 
+        // 连接成功后自动订阅所有通知特征值
+        await subscribeAllNotifications();
+
         await syncFromBike();
         updateBleUI();
     } catch (e) {
@@ -2111,6 +2167,7 @@ async function autoConnectBike() {
                             await bleDevice.gatt.connect();
                             bleServer = bleDevice.gatt;
                             bleConnected = true;
+                            await subscribeAllNotifications();
                             await syncFromBike();
                             updateBleUI();
                         } catch (err) { console.log("Adv reconnect failed:", err); }
@@ -2123,6 +2180,7 @@ async function autoConnectBike() {
         await bleDevice.gatt.connect();
         bleServer = bleDevice.gatt;
         bleConnected = true;
+        await subscribeAllNotifications();
         await syncFromBike();
         updateBleUI();
     } catch (e) {
@@ -2144,6 +2202,9 @@ function disconnectBike() {
 function onBleDisconnected() {
     bleConnected = false;
     bleServer = null;
+    bleNotifySubscribed = false;
+    bleNotifyChars = [];
+    bleNotifyData = [];
     updateBleUI();
 }
 
@@ -2234,6 +2295,12 @@ function toggleBleAdvanced() {
     } else {
         adv.classList.add("show");
         toggle.innerText = "▾ 高级配置（协议参数）";
+        // 展开高级配置时，如果已连接则自动订阅通知并显示监听区域
+        let notifyBox = document.getElementById("ble-notify-box");
+        if (bleConnected && !bleNotifySubscribed) {
+            subscribeAllNotifications();
+        }
+        if (notifyBox && bleConnected) notifyBox.classList.add("show");
     }
 }
 
@@ -2250,6 +2317,264 @@ function saveBleConfig() {
     localStorage.setItem("bleOdoLen", bleOdoLen);
     localStorage.setItem("bleOdoFactor", bleOdoFactor);
     localStorage.setItem("bleOdoEndian", bleOdoEndian);
+}
+
+// 订阅所有 Notify 特征值
+async function subscribeAllNotifications() {
+    if (!bleConnected || !bleServer) return;
+    bleNotifyChars = [];
+    bleNotifyData = [];
+    bleNotifySubscribed = true;
+
+    let logEl = document.getElementById("ble-notify-log");
+    let countEl = document.getElementById("ble-notify-count");
+    if (logEl) logEl.innerText = "正在订阅所有通知特征值...\n";
+    if (countEl) countEl.innerText = "订阅中...";
+
+    let subscribeCount = 0;
+    try {
+        let services = await bleServer.getPrimaryServices();
+        for (let service of services) {
+            try {
+                let chars = await service.getCharacteristics();
+                for (let char of chars) {
+                    if (char.properties.notify || char.properties.indicate) {
+                        try {
+                            await char.startNotifications();
+                            char.addEventListener('characteristicvaluechanged', onBleNotify);
+                            bleNotifyChars.push(char);
+                            subscribeCount++;
+                            if (logEl) logEl.innerText += "✓ 已订阅 " + char.uuid.substring(0, 4) + " (" + service.uuid.substring(0, 4) + ")\n";
+                        } catch (e) {
+                            if (logEl) logEl.innerText += "✗ 订阅失败 " + char.uuid.substring(0, 4) + ": " + e.message + "\n";
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+    } catch (e) {
+        if (logEl) logEl.innerText += "扫描服务失败: " + e.message + "\n";
+    }
+
+    if (countEl) countEl.innerText = subscribeCount > 0 ? ("已订阅 " + subscribeCount + " 个特征值，等待数据...") : "无可订阅的特征值";
+}
+
+// 通知数据回调
+function onBleNotify(event) {
+    let value = event.target.value;
+    let charUuid = event.target.uuid;
+    let bytes = [];
+    for (let i = 0; i < value.byteLength; i++) {
+        bytes.push(value.getUint8(i));
+    }
+    let now = new Date();
+    let timestamp = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0') + ":" + String(now.getSeconds()).padStart(2, '0');
+
+    let record = { charUuid: charUuid, bytes: bytes, timestamp: timestamp };
+    bleNotifyData.push(record);
+
+    // 实时显示
+    let logEl = document.getElementById("ble-notify-log");
+    let countEl = document.getElementById("ble-notify-count");
+    if (logEl) {
+        let hexBytes = bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+        let interpretations = [];
+        let dv = new DataView(value.buffer);
+        if (bytes.length >= 1) interpretations.push("u8:" + bytes[0]);
+        if (bytes.length >= 2) interpretations.push("LE16:" + dv.getUint16(0, true) + " BE16:" + dv.getUint16(0, false));
+        if (bytes.length >= 4) interpretations.push("LE32:" + dv.getUint32(0, true) + " BE32:" + dv.getUint32(0, false));
+
+        let line = "[" + timestamp + "] " + charUuid.substring(0, 4) + " → [" + hexBytes + "] " + interpretations.join(" ");
+        logEl.innerText += line + "\n";
+        // 自动滚动到底部
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+    if (countEl) countEl.innerText = "已收到 " + bleNotifyData.length + " 条数据";
+
+    // 如果配置了里程特征值，自动同步
+    if (bleOdoChar && charUuid.endsWith(bleOdoChar.substring(4).toLowerCase())) {
+        processOdoNotify(value);
+    }
+}
+
+// 处理里程通知数据
+function processOdoNotify(value) {
+    if (bleOdoLen === 2) {
+        let rawVal = bleOdoEndian === "little" ? value.getUint16(bleOdoOffset, true) : value.getUint16(bleOdoOffset, false);
+        let odoKm = Math.round(rawVal * bleOdoFactor);
+        if (odoKm >= 0 && odoKm < 9999999) {
+            setRollerValue('odo', odoLength, odoKm);
+            currentOdoRollerVal = odoKm;
+            localStorage.setItem("currentOdoRollerVal", odoKm);
+            if (lastOdo === null) lastOdo = odoKm;
+            bleLastSync = `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`;
+            localStorage.setItem("bleLastSync", bleLastSync);
+            save();
+            render();
+        }
+    } else if (bleOdoLen === 4) {
+        let rawVal = bleOdoEndian === "little" ? value.getUint32(bleOdoOffset, true) : value.getUint32(bleOdoOffset, false);
+        let odoKm = Math.round(rawVal * bleOdoFactor);
+        if (odoKm >= 0 && odoKm < 9999999) {
+            setRollerValue('odo', odoLength, odoKm);
+            currentOdoRollerVal = odoKm;
+            localStorage.setItem("currentOdoRollerVal", odoKm);
+            if (lastOdo === null) lastOdo = odoKm;
+            bleLastSync = `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`;
+            localStorage.setItem("bleLastSync", bleLastSync);
+            save();
+            render();
+        }
+    }
+}
+
+// 智能匹配：基于通知数据
+function smartSearchNotifyData() {
+    let targetKm = Number(document.getElementById("ble-target-odo").value);
+    if (!targetKm || targetKm <= 0) {
+        openConfirmModal("请输入里程", "请先输入仪表上显示的总里程数值（如 5320）", null);
+        return;
+    }
+    if (bleNotifyData.length === 0) {
+        openConfirmModal("无数据", "尚未收到任何通知数据。\n请等待车辆推送数据，或尝试解锁车辆触发数据更新。", null);
+        return;
+    }
+
+    let matches = [];
+    let factors = [1, 0.1, 0.01, 0.001, 10];
+    let endians = ["little", "big"];
+
+    for (let record of bleNotifyData) {
+        if (record.bytes.length < 1) continue;
+        let dv = new DataView(new Uint8Array(record.bytes).buffer);
+
+        for (let len = 1; len <= 4 && len <= record.bytes.length; len++) {
+            for (let offset = 0; offset + len <= record.bytes.length; offset++) {
+                for (let endian of endians) {
+                    for (let factor of factors) {
+                        let rawVal;
+                        try {
+                            if (len === 1) rawVal = dv.getUint8(offset);
+                            else if (len === 2) rawVal = dv.getUint16(offset, endian === "little");
+                            else if (len === 4) rawVal = dv.getUint32(offset, endian === "little");
+                            else continue;
+                        } catch (e) { continue; }
+
+                        let calcKm = Math.round(rawVal * factor * 10) / 10;
+                        if (Math.abs(calcKm - targetKm) <= 5 && calcKm > 0) {
+                            matches.push({
+                                charUuid: record.charUuid,
+                                offset: offset,
+                                len: len,
+                                endian: endian,
+                                factor: factor,
+                                rawVal: rawVal,
+                                calcKm: calcKm,
+                                diff: Math.abs(calcKm - targetKm),
+                                bytes: record.bytes
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    matches.sort((a, b) => a.diff - b.diff);
+
+    let resultDiv = document.getElementById("ble-match-result");
+
+    if (matches.length === 0) {
+        resultDiv.classList.add("show");
+        resultDiv.innerHTML = "❌ 在 " + bleNotifyData.length + " 条通知数据中未找到匹配 " + targetKm + " km 的字段\n\n" +
+            "可能原因：\n" +
+            "• 里程数据需要解锁车辆后才会推送\n" +
+            "• 里程数据需要发送特定命令才会返回\n" +
+            "• 车辆BLE协议中不含里程字段\n\n" +
+            "建议：解锁车辆、骑行一段后再试；\n" +
+            "或查看上方通知日志手动分析数据。";
+        return;
+    }
+
+    let best = matches[0];
+    // 找到该 charUuid 所在的 service UUID
+    let bestService = "";
+    try {
+        // 从已订阅的特征值中查找所属 service
+        for (let char of bleNotifyChars) {
+            if (char.uuid === best.charUuid) {
+                bestService = char.service.uuid;
+                break;
+            }
+        }
+    } catch (e) {}
+
+    let html = "✅ 找到 " + matches.length + " 个匹配项，最佳匹配：\n\n" +
+        "里程: " + best.calcKm + " km（误差 ±" + best.diff.toFixed(1) + " km）\n" +
+        "原始值: " + best.rawVal + " × 倍率 " + best.factor + "\n" +
+        "Characteristic: " + best.charUuid + "\n" +
+        (bestService ? "Service: " + bestService + "\n" : "") +
+        "字节偏移: " + best.offset + " | 长度: " + best.len + "字节 | 字节序: " + (best.endian === "little" ? "小端" : "大端") + "\n\n";
+
+    if (matches.length > 1) {
+        html += "其他候选：\n";
+        for (let i = 1; i < Math.min(matches.length, 4); i++) {
+            let m = matches[i];
+            html += "• " + m.calcKm + " km (原始:" + m.rawVal + " ×" + m.factor + " " + (m.endian === "little" ? "LE" : "BE") + " " + m.len + "B@" + m.offset + ") " + m.charUuid.substring(0, 4) + "\n";
+        }
+        html += "\n";
+    }
+
+    html += '<button class="ble-match-btn" onclick="applyNotifyMatch(0)">✅ 应用最佳匹配</button>';
+    if (matches.length > 1) {
+        html += ' <button class="ble-match-btn" onclick="showNotifyMatchDetail()" style="background:rgba(0,122,255,0.10);color:var(--ios-blue);border-color:rgba(0,122,255,0.2)">查看所有候选</button>';
+    }
+
+    window._bleNotifyMatches = matches;
+    resultDiv.classList.add("show");
+    resultDiv.innerHTML = html;
+}
+
+// 应用通知匹配结果
+function applyNotifyMatch(index) {
+    if (!window._bleNotifyMatches || !window._bleNotifyMatches[index]) return;
+    let m = window._bleNotifyMatches[index];
+    // 找 service UUID
+    let serviceUuid = "";
+    for (let char of bleNotifyChars) {
+        if (char.uuid === m.charUuid) {
+            serviceUuid = char.service.uuid;
+            break;
+        }
+    }
+    document.getElementById("cfg-odo-service").value = serviceUuid;
+    document.getElementById("cfg-odo-char").value = m.charUuid;
+    document.getElementById("cfg-odo-offset").value = m.offset;
+    document.getElementById("cfg-odo-length").value = m.len;
+    document.getElementById("cfg-odo-factor").value = m.factor;
+    document.getElementById("cfg-odo-endian").value = m.endian;
+    saveBleConfig();
+    openConfirmModal("✅ 配置已应用", "里程协议参数已自动填入。\n车辆每次推送通知数据时将自动更新里程。\n\n" +
+        "Char: " + m.charUuid.substring(0, 8) + "...\n" +
+        "计算里程: " + m.calcKm + " km\n\n" +
+        "注意：此车辆使用通知推送模式（Write+Notify），\n里程数据通过通知实时更新，无需手动读取。", null);
+}
+
+// 显示所有通知匹配候选详情
+function showNotifyMatchDetail() {
+    if (!window._bleNotifyMatches) return;
+    let html = "所有候选匹配：\n\n";
+    for (let i = 0; i < window._bleNotifyMatches.length; i++) {
+        let m = window._bleNotifyMatches[i];
+        html += (i === 0 ? "★ " : "  ") + i + ". " + m.calcKm + " km (误差±" + m.diff.toFixed(1) + ")\n" +
+            "   原始:" + m.rawVal + " ×" + m.factor + " " + (m.endian === "little" ? "LE" : "BE") + " " + m.len + "B@" + m.offset + "\n" +
+            "   Char: " + m.charUuid + "\n\n";
+    }
+    html += '选择要应用的匹配项：\n';
+    for (let i = 0; i < Math.min(window._bleNotifyMatches.length, 5); i++) {
+        html += '<button class="ble-match-btn" onclick="applyNotifyMatch(' + i + ')">应用 #' + i + ' (' + window._bleNotifyMatches[i].calcKm + 'km)</button> ';
+    }
+    document.getElementById("ble-match-result").innerHTML = html;
 }
 
 async function readAllBleData() {
