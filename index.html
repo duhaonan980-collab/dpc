@@ -879,6 +879,114 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
     from { transform: translateY(30px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
+
+/* --- 车辆蓝牙 BLE 同步 --- */
+.ble-status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+    transition: background-color 0.3s;
+}
+.ble-status-dot.connected { background: var(--ios-green); }
+.ble-status-dot.connecting { background: var(--ios-yellow); animation: ble-pulse 1s infinite; }
+.ble-status-dot.disconnected { background: var(--ios-gray); }
+@keyframes ble-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.ble-device-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.ble-device-info { flex: 1; }
+.ble-device-name { font-size: 15px; font-weight: 600; color: var(--ios-text-primary); }
+.ble-last-sync { font-size: 12px; color: var(--ios-text-secondary); margin-top: 3px; }
+
+.ble-btns { display: flex; gap: 8px; width: 100%; margin-top: 4px; }
+.ble-btn {
+    flex: 1;
+    border: 0.5px solid rgba(0,0,0,0.06);
+    padding: 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+.ble-btn.connect { background: rgba(0,122,255,0.10); color: var(--ios-blue); border-color: rgba(0,122,255,0.18); }
+.ble-btn.sync { background: rgba(52,199,89,0.10); color: #34C759; border-color: rgba(52,199,89,0.18); }
+.ble-btn.disconnect { background: rgba(255,59,48,0.10); color: var(--ios-red); border-color: rgba(255,59,48,0.18); }
+.ble-btn:active { transform: scale(0.96); }
+[data-theme="dark"] .ble-btn.connect { background: rgba(10,132,255,0.12); color: #0A84FF; border-color: rgba(10,132,255,0.22); }
+[data-theme="dark"] .ble-btn.sync { background: rgba(48,209,88,0.12); color: #30D158; border-color: rgba(48,209,88,0.22); }
+[data-theme="dark"] .ble-btn.disconnect { background: rgba(255,69,58,0.12); color: #FF453A; border-color: rgba(255,69,58,0.22); }
+
+.ble-sub-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 10px 0 0;
+    border-top: 0.5px solid var(--ios-border);
+    margin-top: 4px;
+}
+.ble-sub-row .setting-title { font-size: 15px; }
+
+.ble-advanced-toggle {
+    font-size: 13px;
+    color: var(--ios-blue);
+    cursor: pointer;
+    font-weight: 600;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 8px 0 0;
+    margin-top: 4px;
+}
+.ble-advanced { display: none; width: 100%; margin-top: 6px; }
+.ble-advanced.show { display: block; }
+.ble-config-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.ble-config-row label { font-size: 12px; color: var(--ios-text-secondary); min-width: 70px; margin-bottom: 0; padding: 0; }
+.ble-config-row input, .ble-config-row select {
+    flex: 1;
+    font-size: 13px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 0.5px solid var(--ios-border);
+    background: var(--ios-bg);
+    color: var(--ios-text-primary);
+    box-sizing: border-box;
+}
+.ble-config-row input:focus, .ble-config-row select:focus { outline: none; border-color: var(--ios-blue); }
+
+.ble-raw-data {
+    display: none;
+    margin-top: 8px;
+    padding: 10px;
+    background: var(--ios-bg);
+    border-radius: 8px;
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--ios-text-secondary);
+    max-height: 220px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.5;
+}
+.ble-raw-data.show { display: block; }
+
+/* 主页蓝牙同步入口 */
+.ble-main-sync {
+    font-size: 12px;
+    color: var(--ios-blue);
+    cursor: pointer;
+    font-weight: 600;
+    float: right;
+    display: none;
+}
+.ble-main-sync.show { display: inline; }
+.ble-main-sync:active { opacity: 0.6; }
 </style>
 </head>
 <body>
@@ -911,7 +1019,7 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
 
         <div class="setting-group">
             <div class="setting-row" style="flex-direction:column;align-items:stretch;">
-                <label>当前总里程</label>
+                <label>当前总里程 <span class="ble-main-sync" id="ble-main-sync" onclick="syncFromBikeManual()">🔄 蓝牙同步</span></label>
                 <div class="roller-wrapper">
                     <div class="roller-container" id="odoContainer"></div>
                 </div>
@@ -1028,7 +1136,70 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
                 </div>
             </div>
         </div>
-        <div class="version-tag">Version 1.6.2.1</div>
+        <div class="setting-group">
+            <div class="setting-row" style="flex-direction:column;align-items:stretch;">
+                <div>
+                    <div class="setting-title">🔗 车辆蓝牙同步</div>
+                    <div class="setting-desc" id="ble-desc">连接电瓶车蓝牙，自动同步里程与电量</div>
+                </div>
+                <div class="ble-device-row">
+                    <div class="ble-device-info">
+                        <div class="ble-device-name">
+                            <span class="ble-status-dot disconnected" id="ble-status-dot"></span>
+                            <span id="ble-status-text">未连接</span>
+                        </div>
+                        <div class="ble-last-sync" id="ble-last-sync-text"></div>
+                    </div>
+                </div>
+                <div class="ble-btns">
+                    <button class="ble-btn connect" id="ble-connect-btn" onclick="connectBike()">🔍 连接车辆</button>
+                    <button class="ble-btn sync" id="ble-sync-btn" onclick="syncFromBikeManual()" style="display:none">🔄 立即同步</button>
+                    <button class="ble-btn disconnect" id="ble-disconnect-btn" onclick="disconnectBike()" style="display:none">❌ 断开</button>
+                </div>
+                <div class="ble-sub-row">
+                    <div>
+                        <div class="setting-title">自动同步</div>
+                        <div class="setting-desc">打开App时自动连接并同步</div>
+                    </div>
+                    <label class="ios-switch">
+                        <input type="checkbox" id="bleAutoSyncToggle" onchange="toggleBleAutoSync(this.checked)">
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+                <button class="ble-advanced-toggle" id="ble-adv-toggle" onclick="toggleBleAdvanced()">▸ 高级配置（协议参数）</button>
+                <div class="ble-advanced" id="ble-advanced">
+                    <div class="ble-config-row">
+                        <label>Service UUID</label>
+                        <input type="text" id="cfg-odo-service" placeholder="如 0000fff0-0000-1000-8000-00805f9b34fb" onblur="saveBleConfig()">
+                    </div>
+                    <div class="ble-config-row">
+                        <label>Char UUID</label>
+                        <input type="text" id="cfg-odo-char" placeholder="如 0000fff1-0000-1000-8000-00805f9b34fb" onblur="saveBleConfig()">
+                    </div>
+                    <div class="ble-config-row">
+                        <label>字节偏移</label>
+                        <input type="number" id="cfg-odo-offset" placeholder="0" style="max-width:60px" onblur="saveBleConfig()">
+                        <label style="min-width:56px">长度</label>
+                        <select id="cfg-odo-length" onchange="saveBleConfig()">
+                            <option value="2">2字节</option>
+                            <option value="4">4字节</option>
+                        </select>
+                    </div>
+                    <div class="ble-config-row">
+                        <label>倍率</label>
+                        <input type="number" id="cfg-odo-factor" placeholder="0.1" step="0.01" style="max-width:70px" onblur="saveBleConfig()">
+                        <label style="min-width:56px">字节序</label>
+                        <select id="cfg-odo-endian" onchange="saveBleConfig()">
+                            <option value="little">小端</option>
+                            <option value="big">大端</option>
+                        </select>
+                    </div>
+                    <button class="ble-btn sync" style="margin-top:10px" onclick="readAllBleData()">📋 读取所有特征值</button>
+                    <div class="ble-raw-data" id="ble-raw-data"></div>
+                </div>
+            </div>
+        </div>
+        <div class="version-tag">Version 1.7.0</div>
     </div>
 
     <nav class="tab-bar">
@@ -1624,7 +1795,7 @@ function deleteFromFullHistory(id) {
 // 数据导出
 function exportData() {
     let data = {
-        version: "1.6.2.1",
+        version: "1.7.0",
         exportTime: new Date().toISOString(),
         maxRange: MAX,
         lastOdo: lastOdo,
@@ -1633,7 +1804,15 @@ function exportData() {
         currentOdoRollerVal: currentOdoRollerVal,
         chargePower: chargePower,
         odoLength: odoLength,
-        darkTheme: isDarkTheme
+        darkTheme: isDarkTheme,
+        bleDeviceName: bleDeviceName,
+        bleAutoSync: bleAutoSync,
+        bleOdoService: bleOdoService,
+        bleOdoChar: bleOdoChar,
+        bleOdoOffset: bleOdoOffset,
+        bleOdoLen: bleOdoLen,
+        bleOdoFactor: bleOdoFactor,
+        bleOdoEndian: bleOdoEndian
     };
     let json = JSON.stringify(data, null, 2);
     let blob = new Blob([json], { type: "application/json" });
@@ -1679,6 +1858,23 @@ function importData(event) {
                 localStorage.setItem("chargePower", chargePower);
                 localStorage.setItem("odoLength", odoLength);
                 localStorage.setItem("darkTheme", isDarkTheme);
+                // BLE 配置导入
+                bleDeviceName = data.bleDeviceName || "";
+                bleAutoSync = data.bleAutoSync !== false;
+                bleOdoService = data.bleOdoService || "";
+                bleOdoChar = data.bleOdoChar || "";
+                bleOdoOffset = data.bleOdoOffset || 0;
+                bleOdoLen = data.bleOdoLen || 2;
+                bleOdoFactor = data.bleOdoFactor || 0.1;
+                bleOdoEndian = data.bleOdoEndian || "little";
+                localStorage.setItem("bleDeviceName", bleDeviceName);
+                localStorage.setItem("bleAutoSync", bleAutoSync);
+                localStorage.setItem("bleOdoService", bleOdoService);
+                localStorage.setItem("bleOdoChar", bleOdoChar);
+                localStorage.setItem("bleOdoOffset", bleOdoOffset);
+                localStorage.setItem("bleOdoLen", bleOdoLen);
+                localStorage.setItem("bleOdoFactor", bleOdoFactor);
+                localStorage.setItem("bleOdoEndian", bleOdoEndian);
                 // 导入完成后刷新页面，确保所有数据与UI彻底同步
                 location.reload();
             });
@@ -1701,10 +1897,20 @@ function confirmReset() {
     chargePower = 200;
     odoLength = 5;
     isDarkTheme = false;
+    // BLE 状态重置
+    if (bleDevice && bleDevice.gatt && bleDevice.gatt.connected) { bleDevice.gatt.disconnect(); }
+    bleConnected = false;
+    bleDevice = null;
+    bleServer = null;
+    bleDeviceName = "";
+    bleAutoSync = true;
+    bleLastSync = "";
+    bleOdoService = ""; bleOdoChar = ""; bleOdoOffset = 0; bleOdoLen = 2; bleOdoFactor = 0.1; bleOdoEndian = "little";
     setRollerValue('odo', odoLength, 0); 
     setRollerValue('hour', 1, 0); 
     save(); 
     updateSettingUI();
+    updateBleUI();
     render(); 
 }
 
@@ -1713,6 +1919,338 @@ function startEdit() { document.getElementById("remain").style.display = "none";
 function cancelEdit() { document.getElementById("editBox").style.display = "none"; document.getElementById("remain").style.display = "block"; document.getElementById("setBtn").style.display = "flex"; }
 function saveMax() { let v = Number(document.getElementById("maxInput").value); if(v > 0) { MAX = v; remain = v; historyLog.unshift({ id: Date.now().toString(), time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`, type: 'edit', remain: MAX }); save(); render(); } cancelEdit(); }
 
+// =======================================================
+//        【模块：车辆蓝牙 BLE 同步】
+// =======================================================
+
+let bleDevice = null;
+let bleServer = null;
+let bleConnected = false;
+let bleAutoSync = localStorage.getItem("bleAutoSync") !== "false";
+let bleDeviceName = localStorage.getItem("bleDeviceName") || "";
+let bleLastSync = localStorage.getItem("bleLastSync") || "";
+let bleOdoService = localStorage.getItem("bleOdoService") || "";
+let bleOdoChar = localStorage.getItem("bleOdoChar") || "";
+let bleOdoOffset = Number(localStorage.getItem("bleOdoOffset")) || 0;
+let bleOdoLen = Number(localStorage.getItem("bleOdoLen")) || 2;
+let bleOdoFactor = Number(localStorage.getItem("bleOdoFactor")) || 0.1;
+let bleOdoEndian = localStorage.getItem("bleOdoEndian") || "little";
+
+function isBleSupported() { return 'bluetooth' in navigator; }
+
+function updateBleUI() {
+    if (!document.getElementById("ble-status-dot")) return;
+    let dot = document.getElementById("ble-status-dot");
+    let text = document.getElementById("ble-status-text");
+    let lastSyncEl = document.getElementById("ble-last-sync-text");
+    let connectBtn = document.getElementById("ble-connect-btn");
+    let syncBtn = document.getElementById("ble-sync-btn");
+    let disconnectBtn = document.getElementById("ble-disconnect-btn");
+    let desc = document.getElementById("ble-desc");
+    let mainSync = document.getElementById("ble-main-sync");
+    let autoToggle = document.getElementById("bleAutoSyncToggle");
+
+    if (!isBleSupported()) {
+        dot.className = "ble-status-dot disconnected";
+        text.innerText = "浏览器不支持";
+        desc.innerText = "请使用 Chrome、Edge 或 iOS Safari 16.4+";
+        connectBtn.style.display = "none";
+        if (mainSync) mainSync.classList.remove("show");
+        return;
+    }
+
+    if (bleConnected) {
+        dot.className = "ble-status-dot connected";
+        text.innerText = "已连接 · " + bleDeviceName;
+        connectBtn.style.display = "none";
+        syncBtn.style.display = "block";
+        disconnectBtn.style.display = "block";
+        desc.innerText = "已连接，可自动同步里程与电量";
+        if (mainSync) mainSync.classList.add("show");
+    } else {
+        dot.className = "ble-status-dot disconnected";
+        text.innerText = bleDeviceName ? ("未连接 · " + bleDeviceName) : "未连接";
+        connectBtn.innerText = bleDeviceName ? "🔍 重新连接" : "🔍 连接车辆";
+        connectBtn.style.display = "block";
+        syncBtn.style.display = "none";
+        disconnectBtn.style.display = "none";
+        desc.innerText = "连接电瓶车蓝牙，自动同步里程与电量";
+        if (mainSync) mainSync.classList.remove("show");
+    }
+
+    lastSyncEl.innerText = bleLastSync ? ("上次同步: " + bleLastSync) : "";
+    if (autoToggle) autoToggle.checked = bleAutoSync;
+
+    let sEl = document.getElementById("cfg-odo-service");
+    if (sEl) {
+        sEl.value = bleOdoService;
+        document.getElementById("cfg-odo-char").value = bleOdoChar;
+        document.getElementById("cfg-odo-offset").value = bleOdoOffset;
+        document.getElementById("cfg-odo-length").value = bleOdoLen;
+        document.getElementById("cfg-odo-factor").value = bleOdoFactor;
+        document.getElementById("cfg-odo-endian").value = bleOdoEndian;
+    }
+}
+
+async function connectBike() {
+    if (!isBleSupported()) {
+        openConfirmModal("不支持", "您的浏览器不支持蓝牙功能。\n请使用 Chrome、Edge 或 iOS Safari 16.4+。", null);
+        return;
+    }
+    try {
+        document.getElementById("ble-status-dot").className = "ble-status-dot connecting";
+        document.getElementById("ble-status-text").innerText = "正在搜索设备...";
+
+        bleDevice = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [
+                'battery_service',
+                'device_information',
+                '0000fff0-0000-1000-8000-00805f9b34fb',
+                '0000ffe0-0000-1000-8000-00805f9b34fb',
+                '0000ff00-0000-1000-8000-00805f9b34fb',
+                '6e400001-b5a3-f393-e0a9-e50e24dcca9e'
+            ]
+        });
+
+        bleDeviceName = bleDevice.name || "未知设备";
+        localStorage.setItem("bleDeviceName", bleDeviceName);
+        bleDevice.addEventListener('gattserverdisconnected', onBleDisconnected);
+
+        document.getElementById("ble-status-text").innerText = "正在连接...";
+        await bleDevice.gatt.connect();
+        bleServer = bleDevice.gatt;
+        bleConnected = true;
+
+        await syncFromBike();
+        updateBleUI();
+    } catch (e) {
+        console.error("BLE connect error:", e);
+        bleConnected = false;
+        updateBleUI();
+        if (e.name !== 'NotFoundError') {
+            openConfirmModal("连接失败", (e.message || "无法连接") + "\n请确保车辆已通电且蓝牙已开启。", null);
+        }
+    }
+}
+
+async function autoConnectBike() {
+    if (!isBleSupported() || !bleAutoSync || !bleDeviceName) return;
+    if (!navigator.bluetooth.getDevices) return; // 浏览器不支持自动重连
+    try {
+        let devices = await navigator.bluetooth.getDevices();
+        let target = devices.find(d => d.name === bleDeviceName);
+        if (!target) return;
+
+        bleDevice = target;
+        bleDevice.addEventListener('gattserverdisconnected', onBleDisconnected);
+
+        let dot = document.getElementById("ble-status-dot");
+        let text = document.getElementById("ble-status-text");
+        if (dot) dot.className = "ble-status-dot connecting";
+        if (text) text.innerText = "自动连接中...";
+
+        // 尝试 watchAdvertisements 实现靠近自动连接
+        if (target.watchAdvertisements) {
+            try {
+                target.addEventListener('advertisementreceived', async () => {
+                    if (!bleConnected && bleDevice) {
+                        try {
+                            await bleDevice.gatt.connect();
+                            bleServer = bleDevice.gatt;
+                            bleConnected = true;
+                            await syncFromBike();
+                            updateBleUI();
+                        } catch (err) { console.log("Adv reconnect failed:", err); }
+                    }
+                });
+                target.watchAdvertisements();
+            } catch (err) { console.log("watchAdvertisements not available:", err); }
+        }
+
+        await bleDevice.gatt.connect();
+        bleServer = bleDevice.gatt;
+        bleConnected = true;
+        await syncFromBike();
+        updateBleUI();
+    } catch (e) {
+        console.log("BLE auto-connect skipped:", e.message);
+        bleConnected = false;
+        updateBleUI();
+    }
+}
+
+function disconnectBike() {
+    if (bleDevice && bleDevice.gatt && bleDevice.gatt.connected) {
+        bleDevice.gatt.disconnect();
+    }
+    bleConnected = false;
+    bleServer = null;
+    updateBleUI();
+}
+
+function onBleDisconnected() {
+    bleConnected = false;
+    bleServer = null;
+    updateBleUI();
+}
+
+async function syncFromBikeManual() {
+    if (!bleConnected) {
+        if (bleDeviceName) {
+            openConfirmModal("未连接", "车辆蓝牙未连接，点击「重新连接」尝试恢复连接。", null);
+        } else {
+            openConfirmModal("未连接", "请先在设置中连接车辆蓝牙。", null);
+        }
+        return;
+    }
+    let result = await syncFromBike();
+    if (result && (result.odo != null || result.battery != null)) {
+        let msg = "";
+        if (result.odo != null) msg += "总里程: " + result.odo + " km\n";
+        if (result.battery != null) msg += "电量: " + result.battery + "%\n剩余续航: " + remain.toFixed(1) + " km";
+        openConfirmModal("✅ 同步成功", msg.trim(), null);
+    } else {
+        openConfirmModal("同步完成", "已连接，但未读取到有效数据。\n如需同步里程，请在「高级配置」中设置协议参数，\n或点击「读取所有特征值」查看可用数据。", null);
+    }
+}
+
+async function syncFromBike() {
+    if (!bleConnected || !bleServer) return null;
+    let result = {};
+
+    // 1. 读取电量（标准 Battery Service）
+    try {
+        let service = await bleServer.getPrimaryService('battery_service');
+        let char = await service.getCharacteristic('battery_level');
+        let value = await char.readValue();
+        let batteryPercent = value.getUint8(0);
+        result.battery = batteryPercent;
+        // 电量百分比映射到续航
+        remain = Math.round(MAX * batteryPercent / 100 * 10) / 10;
+        remain = Math.max(0, Math.min(MAX, remain));
+    } catch (e) {
+        console.log("Battery service not available");
+    }
+
+    // 2. 读取里程（自定义 Characteristic）
+    if (bleOdoService && bleOdoChar) {
+        try {
+            let service = await bleServer.getPrimaryService(bleOdoService);
+            let char = await service.getCharacteristic(bleOdoChar);
+            let value = await char.readValue();
+            let rawVal;
+            if (bleOdoLen === 2) {
+                rawVal = bleOdoEndian === "little" ? value.getUint16(bleOdoOffset, true) : value.getUint16(bleOdoOffset, false);
+            } else {
+                rawVal = bleOdoEndian === "little" ? value.getUint32(bleOdoOffset, true) : value.getUint32(bleOdoOffset, false);
+            }
+            let odoKm = Math.round(rawVal * bleOdoFactor);
+            if (odoKm >= 0 && odoKm < 9999999) {
+                result.odo = odoKm;
+                setRollerValue('odo', odoLength, odoKm);
+                currentOdoRollerVal = odoKm;
+                localStorage.setItem("currentOdoRollerVal", odoKm);
+                if (lastOdo === null) lastOdo = odoKm;
+            }
+        } catch (e) {
+            console.log("Odometer characteristic not available:", e.message);
+        }
+    }
+
+    bleLastSync = `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`;
+    localStorage.setItem("bleLastSync", bleLastSync);
+
+    if (result.battery != null || result.odo != null) {
+        save();
+        render();
+    }
+    return result;
+}
+
+function toggleBleAutoSync(checked) {
+    bleAutoSync = checked;
+    localStorage.setItem("bleAutoSync", checked);
+}
+
+function toggleBleAdvanced() {
+    let adv = document.getElementById("ble-advanced");
+    let toggle = document.getElementById("ble-adv-toggle");
+    if (adv.classList.contains("show")) {
+        adv.classList.remove("show");
+        toggle.innerText = "▸ 高级配置（协议参数）";
+    } else {
+        adv.classList.add("show");
+        toggle.innerText = "▾ 高级配置（协议参数）";
+    }
+}
+
+function saveBleConfig() {
+    bleOdoService = document.getElementById("cfg-odo-service").value.trim();
+    bleOdoChar = document.getElementById("cfg-odo-char").value.trim();
+    bleOdoOffset = Number(document.getElementById("cfg-odo-offset").value) || 0;
+    bleOdoLen = Number(document.getElementById("cfg-odo-length").value) || 2;
+    bleOdoFactor = Number(document.getElementById("cfg-odo-factor").value) || 0.1;
+    bleOdoEndian = document.getElementById("cfg-odo-endian").value;
+    localStorage.setItem("bleOdoService", bleOdoService);
+    localStorage.setItem("bleOdoChar", bleOdoChar);
+    localStorage.setItem("bleOdoOffset", bleOdoOffset);
+    localStorage.setItem("bleOdoLen", bleOdoLen);
+    localStorage.setItem("bleOdoFactor", bleOdoFactor);
+    localStorage.setItem("bleOdoEndian", bleOdoEndian);
+}
+
+async function readAllBleData() {
+    if (!bleConnected || !bleServer) {
+        openConfirmModal("未连接", "请先连接车辆蓝牙", null);
+        return;
+    }
+    let rawDiv = document.getElementById("ble-raw-data");
+    rawDiv.classList.add("show");
+    rawDiv.innerText = "正在读取所有服务与特征值...";
+    let output = [];
+    try {
+        let services = await bleServer.getPrimaryServices();
+        for (let service of services) {
+            output.push("=== Service: " + service.uuid + " ===");
+            try {
+                let chars = await service.getCharacteristics();
+                for (let char of chars) {
+                    let props = [];
+                    if (char.properties.read) props.push("R");
+                    if (char.properties.write) props.push("W");
+                    if (char.properties.notify) props.push("N");
+                    let line = "  [" + props.join("") + "] " + char.uuid;
+                    if (char.properties.read) {
+                        try {
+                            let value = await char.readValue();
+                            let bytes = [];
+                            for (let i = 0; i < value.byteLength; i++) {
+                                bytes.push(value.getUint8(i).toString(16).padStart(2, '0').toUpperCase());
+                            }
+                            line += "\n      原始: [" + bytes.join(' ') + "]";
+                            if (value.byteLength >= 1) line += " (u8:" + value.getUint8(0) + ")";
+                            if (value.byteLength >= 2) {
+                                line += " (LE16:" + value.getUint16(0, true) + " BE16:" + value.getUint16(0, false) + ")";
+                            }
+                            if (value.byteLength >= 4) {
+                                line += " (LE32:" + value.getUint32(0, true) + " BE32:" + value.getUint32(0, false) + ")";
+                            }
+                        } catch (e) { line += " (读取失败)"; }
+                    }
+                    output.push(line);
+                }
+            } catch (e) {
+                output.push("  (无法读取: " + e.message + ")");
+            }
+        }
+        output.push("\n提示: 找到数值接近仪表里程的字段，\n将其 Service UUID 和 Char UUID 填入上方配置。");
+    } catch (e) {
+        output.push("读取失败: " + e.message);
+    }
+    rawDiv.innerText = output.join("\n");
+}
+
 // 页面初始化装载
 initRollers();
 updateSettingUI();
@@ -1720,6 +2258,8 @@ void document.getElementById("odoContainer").offsetHeight;
 setRollerValue('odo', odoLength, currentOdoRollerVal);
 setRollerValue('hour', 1, 0);
 render();
+updateBleUI();
+autoConnectBike();
 
 // 离线 PWA 更新机制
 if ('serviceWorker' in navigator) {
