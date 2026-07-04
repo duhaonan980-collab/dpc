@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ebike-helper-v8';
+const CACHE_NAME = 'ebike-helper-v9';
 const ASSETS = [
   './',
   './index.html'

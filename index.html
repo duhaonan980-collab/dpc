@@ -976,6 +976,53 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
 }
 .ble-raw-data.show { display: block; }
 
+.ble-smart-search {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 0.5px solid var(--ios-border);
+}
+.ble-smart-search input {
+    flex: 1;
+    font-size: 14px;
+    padding: 10px;
+    border-radius: 12px;
+    border: 0.5px solid var(--ios-border);
+    background: var(--ios-bg);
+    color: var(--ios-text-primary);
+    box-sizing: border-box;
+}
+.ble-smart-search input:focus { outline: none; border-color: var(--ios-blue); }
+.ble-match-result {
+    display: none;
+    margin-top: 8px;
+    padding: 12px;
+    background: rgba(52,199,89,0.08);
+    border: 1px solid rgba(52,199,89,0.2);
+    border-radius: 12px;
+    font-size: 13px;
+    color: var(--ios-text-primary);
+    line-height: 1.6;
+}
+.ble-match-result.show { display: block; }
+[data-theme="dark"] .ble-match-result { background: rgba(48,209,88,0.10); border-color: rgba(48,209,88,0.22); }
+.ble-match-btn {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    background: rgba(52,199,89,0.15);
+    color: #34C759;
+    border: 0.5px solid rgba(52,199,89,0.3);
+}
+.ble-match-btn:active { transform: scale(0.96); }
+[data-theme="dark"] .ble-match-btn { background: rgba(48,209,88,0.15); color: #30D158; border-color: rgba(48,209,88,0.3); }
+
 /* 主页蓝牙同步入口 */
 .ble-main-sync {
     font-size: 12px;
@@ -1196,6 +1243,11 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
                     </div>
                     <button class="ble-btn sync" style="margin-top:10px" onclick="readAllBleData()">📋 读取所有特征值</button>
                     <div class="ble-raw-data" id="ble-raw-data"></div>
+                    <div class="ble-smart-search">
+                        <input type="number" id="ble-target-odo" placeholder="输入仪表里程（如 5320）" step="1">
+                        <button class="ble-btn connect" onclick="smartSearchBleOdo()">🔍 智能匹配</button>
+                    </div>
+                    <div class="ble-match-result" id="ble-match-result"></div>
                 </div>
             </div>
         </div>
@@ -2249,6 +2301,196 @@ async function readAllBleData() {
         output.push("读取失败: " + e.message);
     }
     rawDiv.innerText = output.join("\n");
+}
+
+// 智能匹配里程：用户输入仪表里程，自动扫描所有特征值寻找匹配
+async function smartSearchBleOdo() {
+    if (!bleConnected || !bleServer) {
+        openConfirmModal("未连接", "请先连接车辆蓝牙", null);
+        return;
+    }
+    let targetKm = Number(document.getElementById("ble-target-odo").value);
+    if (!targetKm || targetKm <= 0) {
+        openConfirmModal("请输入里程", "请先输入仪表上显示的总里程数值（如 5320）", null);
+        return;
+    }
+
+    let rawDiv = document.getElementById("ble-raw-data");
+    rawDiv.classList.add("show");
+    rawDiv.innerText = "正在扫描所有特征值，匹配里程 " + targetKm + " km ...";
+
+    let resultDiv = document.getElementById("ble-match-result");
+    resultDiv.classList.remove("show");
+    resultDiv.innerText = "";
+
+    // 预存所有原始数据用于匹配
+    let charDataList = [];
+    try {
+        let services = await bleServer.getPrimaryServices();
+        for (let service of services) {
+            try {
+                let chars = await service.getCharacteristics();
+                for (let char of chars) {
+                    if (!char.properties.read) continue;
+                    try {
+                        let value = await char.readValue();
+                        let bytes = [];
+                        for (let i = 0; i < value.byteLength; i++) {
+                            bytes.push(value.getUint8(i));
+                        }
+                        charDataList.push({
+                            serviceUuid: service.uuid,
+                            charUuid: char.uuid,
+                            bytes: bytes,
+                            byteLength: value.byteLength
+                        });
+                    } catch (e) { /* skip unreadable */ }
+                }
+            } catch (e) { /* skip inaccessible service */ }
+        }
+    } catch (e) {
+        openConfirmModal("扫描失败", "无法读取BLE数据: " + e.message, null);
+        return;
+    }
+
+    // 匹配逻辑：遍历各种参数组合
+    let matches = [];
+    let factors = [1, 0.1, 0.01, 0.001, 10];
+    let endians = ["little", "big"];
+
+    for (let cd of charDataList) {
+        if (cd.byteLength < 1) continue;
+
+        // 尝试不同的数据长度和偏移
+        for (let len = 1; len <= 4 && len <= cd.byteLength; len++) {
+            for (let offset = 0; offset + len <= cd.byteLength; offset++) {
+                for (let endian of endians) {
+                    for (let factor of factors) {
+                        let rawVal;
+                        try {
+                            let dv = new DataView(new Uint8Array(cd.bytes).buffer);
+                            if (len === 1) {
+                                rawVal = dv.getUint8(offset);
+                            } else if (len === 2) {
+                                rawVal = dv.getUint16(offset, endian === "little");
+                            } else if (len === 4) {
+                                rawVal = dv.getUint32(offset, endian === "little");
+                            } else {
+                                continue;
+                            }
+                        } catch (e) { continue; }
+
+                        let calcKm = Math.round(rawVal * factor * 10) / 10;
+                        // 允许 ±5km 的误差
+                        if (Math.abs(calcKm - targetKm) <= 5 && calcKm > 0) {
+                            matches.push({
+                                serviceUuid: cd.serviceUuid,
+                                charUuid: cd.charUuid,
+                                offset: offset,
+                                len: len,
+                                endian: endian,
+                                factor: factor,
+                                rawVal: rawVal,
+                                calcKm: calcKm,
+                                diff: Math.abs(calcKm - targetKm),
+                                bytes: cd.bytes
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 按误差排序，最接近的排前面
+    matches.sort((a, b) => a.diff - b.diff);
+
+    // 同时显示完整扫描结果
+    let scanOutput = [];
+    for (let cd of charDataList) {
+        let hexBytes = cd.bytes.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+        let interpretations = [];
+        let dv = new DataView(new Uint8Array(cd.bytes).buffer);
+        if (cd.byteLength >= 1) interpretations.push("u8:" + dv.getUint8(0));
+        if (cd.byteLength >= 2) interpretations.push("LE16:" + dv.getUint16(0, true) + " BE16:" + dv.getUint16(0, false));
+        if (cd.byteLength >= 4) interpretations.push("LE32:" + dv.getUint32(0, true) + " BE32:" + dv.getUint32(0, false));
+        scanOutput.push("[" + cd.serviceUuid.substring(0, 8) + "] " + cd.charUuid.substring(0, 8) + " → [" + hexBytes + "] " + interpretations.join(" "));
+    }
+    rawDiv.innerText = "扫描完成，共 " + charDataList.length + " 个可读特征值：\n" + scanOutput.join("\n");
+
+    if (matches.length === 0) {
+        resultDiv.classList.add("show");
+        resultDiv.innerHTML = "❌ 未找到匹配 " + targetKm + " km 的特征值\n\n" +
+            "可能原因：\n" +
+            "• 车辆未通过BLE暴露里程数据\n" +
+            "• 里程数据以非整数方式编码\n" +
+            "• 里程数据在不可读的特征值中\n\n" +
+            "建议：查看上方原始数据，手动分析各字段的含义。";
+        return;
+    }
+
+    // 显示匹配结果
+    let best = matches[0];
+    let html = "✅ 找到 " + matches.length + " 个匹配项，最佳匹配：\n\n" +
+        "里程: " + best.calcKm + " km（误差 ±" + best.diff.toFixed(1) + " km）\n" +
+        "原始值: " + best.rawVal + " × 倍率 " + best.factor + "\n" +
+        "Service: " + best.serviceUuid + "\n" +
+        "Characteristic: " + best.charUuid + "\n" +
+        "字节偏移: " + best.offset + " | 长度: " + best.len + "字节 | 字节序: " + (best.endian === "little" ? "小端" : "大端") + "\n\n";
+
+    if (matches.length > 1) {
+        html += "其他候选匹配：\n";
+        for (let i = 1; i < Math.min(matches.length, 4); i++) {
+            let m = matches[i];
+            html += "• " + m.calcKm + " km (原始:" + m.rawVal + " ×" + m.factor + " " + (m.endian === "little" ? "LE" : "BE") + " " + m.len + "B offset:" + m.offset + ") " + m.charUuid.substring(0, 8) + "\n";
+        }
+        html += "\n";
+    }
+
+    html += '<button class="ble-match-btn" onclick="applyMatch(0)">✅ 应用最佳匹配</button>';
+    if (matches.length > 1) {
+        html += ' <button class="ble-match-btn" onclick="showMatchDetail()" style="background:rgba(0,122,255,0.10);color:var(--ios-blue);border-color:rgba(0,122,255,0.2)">查看所有候选</button>';
+    }
+
+    // 存储匹配结果供后续使用
+    window._bleMatches = matches;
+
+    resultDiv.classList.add("show");
+    resultDiv.innerHTML = html;
+}
+
+// 应用匹配结果到配置
+function applyMatch(index) {
+    if (!window._bleMatches || !window._bleMatches[index]) return;
+    let m = window._bleMatches[index];
+    document.getElementById("cfg-odo-service").value = m.serviceUuid;
+    document.getElementById("cfg-odo-char").value = m.charUuid;
+    document.getElementById("cfg-odo-offset").value = m.offset;
+    document.getElementById("cfg-odo-length").value = m.len;
+    document.getElementById("cfg-odo-factor").value = m.factor;
+    document.getElementById("cfg-odo-endian").value = m.endian;
+    saveBleConfig();
+    openConfirmModal("✅ 配置已应用", "里程协议参数已自动填入。\n下次同步将使用此配置读取里程数据。\n\n" +
+        "Service: " + m.serviceUuid.substring(0, 8) + "...\n" +
+        "Char: " + m.charUuid.substring(0, 8) + "...\n" +
+        "计算里程: " + m.calcKm + " km", null);
+}
+
+// 显示所有候选匹配的详情
+function showMatchDetail() {
+    if (!window._bleMatches) return;
+    let html = "所有候选匹配（按精度排序）：\n\n";
+    for (let i = 0; i < window._bleMatches.length; i++) {
+        let m = window._bleMatches[i];
+        html += (i === 0 ? "★ " : "  ") + i + ". " + m.calcKm + " km (误差±" + m.diff.toFixed(1) + ")\n" +
+            "   原始:" + m.rawVal + " ×" + m.factor + " " + (m.endian === "little" ? "LE" : "BE") + " " + m.len + "B@" + m.offset + "\n" +
+            "   " + m.charUuid + "\n\n";
+    }
+    html += '点击下方按钮应用对应的匹配项：\n';
+    for (let i = 0; i < Math.min(window._bleMatches.length, 5); i++) {
+        html += '<button class="ble-match-btn" onclick="applyMatch(' + i + ')">应用 #' + i + ' (' + window._bleMatches[i].calcKm + 'km)</button> ';
+    }
+    document.getElementById("ble-match-result").innerHTML = html;
 }
 
 // 页面初始化装载
