@@ -1005,15 +1005,16 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
         </div>
 
         <div class="setting-group">
-            <div class="setting-row">
+            <div class="setting-row" style="flex-direction:column;align-items:stretch;">
                 <div>
                     <div class="setting-title">深色模式</div>
-                    <div class="setting-desc">切换正常或夜间深色高对比度外观</div>
+                    <div class="setting-desc" id="theme-desc">当前: 跟随系统</div>
                 </div>
-                <label class="ios-switch">
-                    <input type="checkbox" id="themeToggle" onchange="toggleTheme(this.checked)">
-                    <span class="switch-slider"></span>
-                </label>
+                <div class="segmented-control">
+                    <button class="segment-btn" id="theme-light" onclick="setThemeMode('light')">☀️ 浅色</button>
+                    <button class="segment-btn" id="theme-dark" onclick="setThemeMode('dark')">🌙 深色</button>
+                    <button class="segment-btn" id="theme-system" onclick="setThemeMode('system')">📱 跟随系统</button>
+                </div>
             </div>
         </div>
 
@@ -1082,7 +1083,7 @@ let pendingAction = null;
 
 let chargePower = Number(localStorage.getItem("chargePower")) || 200;
 let odoLength = Number(localStorage.getItem("odoLength")) || 5;
-let isDarkTheme = localStorage.getItem("darkTheme") === "true";
+let themeMode = localStorage.getItem("themeMode") || "system";
 
 const quickHours = [3, 4, 6, 8];
 const ROLLER_ITEM_HEIGHT = 62; // 滚轮单格高度，CSS和JS共用此值
@@ -1179,7 +1180,28 @@ function setOdoLength(len) {
 }
 
 // 切换深色模式
-function toggleTheme(isDark) { isDarkTheme = isDark; localStorage.setItem("darkTheme", isDark); document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light'); }
+// 主题模式: 'light' | 'dark' | 'system'
+function setThemeMode(mode) {
+    themeMode = mode;
+    localStorage.setItem("themeMode", mode);
+    applyTheme();
+    updateSettingUI();
+}
+
+function applyTheme() {
+    let isDark = false;
+    if (themeMode === 'dark') {
+        isDark = true;
+    } else if (themeMode === 'system') {
+        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+}
+
+// 监听系统主题变化
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (themeMode === 'system') applyTheme();
+});
 
 // 更新设置页面 UI 显隐状态
 function updateSettingUI() {
@@ -1195,8 +1217,14 @@ function updateSettingUI() {
         if(btn) btn.classList.toggle('active', odoLength === l);
     });
 
-    document.getElementById("themeToggle").checked = isDarkTheme;
-    document.documentElement.setAttribute('data-theme', isDarkTheme ? 'dark' : 'light');
+    ['light', 'dark', 'system'].forEach(m => {
+        let btn = document.getElementById(`theme-${m}`);
+        if (btn) btn.classList.toggle('active', themeMode === m);
+    });
+    const themeLabels = { light: '☀️ 浅色', dark: '🌙 深色', system: '📱 跟随系统' };
+    document.getElementById("theme-desc").innerText = `当前: ${themeLabels[themeMode]}`;
+    
+    applyTheme();
 }
 
 // 数据持久化缓存
@@ -1636,7 +1664,7 @@ function exportData() {
         currentOdoRollerVal: currentOdoRollerVal,
         chargePower: chargePower,
         odoLength: odoLength,
-        darkTheme: isDarkTheme
+        themeMode: themeMode
     };
     let json = JSON.stringify(data, null, 2);
     let blob = new Blob([json], { type: "application/json" });
@@ -1673,7 +1701,7 @@ function importData(event) {
                 currentOdoRollerVal = Number(data.currentOdoRollerVal) || 0;
                 chargePower = Number(data.chargePower) || 200;
                 odoLength = Number(data.odoLength) || 5;
-                isDarkTheme = data.darkTheme === true;
+                themeMode = data.themeMode || (data.darkTheme === true ? 'dark' : 'system');
                 localStorage.setItem("maxRange", MAX);
                 localStorage.setItem("lastOdo", lastOdo ?? "");
                 localStorage.setItem("remain", remain);
@@ -1681,7 +1709,7 @@ function importData(event) {
                 localStorage.setItem("currentOdoRollerVal", currentOdoRollerVal);
                 localStorage.setItem("chargePower", chargePower);
                 localStorage.setItem("odoLength", odoLength);
-                localStorage.setItem("darkTheme", isDarkTheme);
+                localStorage.setItem("themeMode", themeMode);
                 // 导入完成后刷新页面，确保所有数据与UI彻底同步
                 location.reload();
             });
@@ -1703,7 +1731,7 @@ function confirmReset() {
     currentOdoRollerVal = 0;
     chargePower = 200;
     odoLength = 5;
-    isDarkTheme = false;
+    themeMode = 'system';
     setRollerValue('odo', odoLength, 0); 
     setRollerValue('hour', 1, 0); 
     save(); 
