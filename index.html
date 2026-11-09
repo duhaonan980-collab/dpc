@@ -880,6 +880,55 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
     to { transform: translateY(0); opacity: 1; }
 }
 
+/* --- 车辆参数 & 维保记录 (v1.9.0) --- */
+.tab-item { width: 25%; }
+.veh-input {
+    width: 100%;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--ios-border);
+    background: var(--ios-bg);
+    color: var(--ios-text-primary);
+    text-align: center;
+    box-sizing: border-box;
+}
+.veh-input:focus { outline: none; border-color: var(--ios-blue); }
+.veh-input-row { display: flex; gap: 8px; width: 100%; align-items: center; }
+.veh-input-row .veh-input { flex: 1; }
+.veh-input-row .segmented-control { width: 132px; flex-shrink: 0; margin-top: 0; }
+.range-result-box { text-align: center; padding: 10px 0 4px; }
+.range-result-box .range-num { font-size: 40px; font-weight: 800; color: var(--ios-blue); letter-spacing: -1px; }
+.range-result-box .range-unit { font-size: 15px; font-weight: 600; color: var(--ios-text-secondary); }
+.range-result-box .range-formula { font-size: 11px; color: var(--ios-text-secondary); margin-top: 6px; font-family: -apple-system-monospaced, monospace; }
+.battery-life-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 4px 2px;
+    font-size: 13px;
+    color: var(--ios-text-secondary);
+    font-weight: 600;
+}
+.battery-life-row .life-val { color: var(--ios-text-primary); font-weight: 700; }
+.record-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.record-input-row label { margin: 0; white-space: nowrap; }
+.record-input-row input {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--ios-border);
+    background: var(--ios-bg);
+    color: var(--ios-text-primary);
+    text-align: right;
+    box-sizing: border-box;
+}
+.record-input-row input:focus { outline: none; border-color: var(--ios-blue); }
+.life-big-num { font-size: 30px; font-weight: 800; color: var(--ios-blue); text-align: center; margin: 4px 0 2px; }
+.life-sub-text { font-size: 12px; color: var(--ios-text-secondary); text-align: center; margin-bottom: 8px; }
 
 </style>
 </head>
@@ -894,12 +943,7 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
                 <div class="big-container">
                     <div class="remain-label">剩余</div>
                     <div class="big" id="remain">60km</div>
-                    <button class="setting-btn" id="setBtn" onclick="startEdit()">⚙️</button>
-                    <div class="edit-box" id="editBox">
-                        <input id="maxInput" type="number" inputmode="numeric">
-                        <button class="edit-btn btn-ok" onclick="saveMax()">✔</button>
-                        <button class="edit-btn btn-no" onclick="cancelEdit()">✘</button>
-                    </div>
+                    <button class="setting-btn" id="setBtn" onclick="switchTab('vehicle')" title="车辆参数">⚙️</button>
                 </div>
                 <div class="bar">
                     <div class="bar-cell" id="bar1"></div>
@@ -907,6 +951,10 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
                     <div class="bar-cell" id="bar3"></div>
                     <div class="bar-cell" id="bar4"></div>
                     <div class="bar-cell" id="bar5"></div>
+                </div>
+                <div class="battery-life-row">
+                    <span>🔋 电池剩余寿命</span>
+                    <span class="life-val" id="batteryLifeText">-- km</span>
                 </div>
             </div>
         </div>
@@ -946,6 +994,113 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
             </div>
         </div>
         
+    </div>
+
+    <div id="page-vehicle" class="page">
+        <h2>🛵 我的车辆</h2>
+
+        <label>🔋 电池</label>
+        <div class="setting-group">
+            <div class="setting-row">
+                <div>
+                    <div class="setting-title">电池电压</div>
+                    <div class="setting-desc" id="v-desc">当前: 48V</div>
+                </div>
+                <div class="power-grid-control">
+                    <button class="segment-btn" id="v-36" onclick="setBatteryV(36)">36V</button>
+                    <button class="segment-btn" id="v-48" onclick="setBatteryV(48)">48V</button>
+                    <button class="segment-btn" id="v-60" onclick="setBatteryV(60)">60V</button>
+                    <button class="segment-btn" id="v-72" onclick="setBatteryV(72)">72V</button>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-title">电池容量 (Ah)</div>
+                    <div class="setting-desc">铅酸 / 锂电标称容量，如 20</div>
+                </div>
+                <input type="number" class="veh-input" id="input-ah" inputmode="decimal" min="1" max="200" placeholder="如 20" onchange="onVehicleNumberInput('batteryAh','input-ah')">
+            </div>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-title">厂商能耗</div>
+                    <div class="setting-desc">说明书或客服口径，也可实测填入</div>
+                </div>
+                <div class="veh-input-row">
+                    <input type="number" class="veh-input" id="input-cons" inputmode="decimal" step="0.1" min="0.1" placeholder="如 13" onchange="onVehicleNumberInput('consumption','input-cons')">
+                    <div class="segmented-control">
+                        <button class="segment-btn" id="unit-wh" onclick="setConsumptionUnit('wh')">Wh/km</button>
+                        <button class="segment-btn" id="unit-ah" onclick="setConsumptionUnit('ah')">Ah/km</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <label>🚀 骑行</label>
+        <div class="setting-group">
+            <div class="setting-row">
+                <div>
+                    <div class="setting-title">最大速度</div>
+                    <div class="setting-desc" id="speed-desc">速度越快风阻越大，能耗按速度修正</div>
+                </div>
+                <div class="power-grid-control">
+                    <button class="segment-btn" id="s-25" onclick="setMaxSpeed(25)">25km/h</button>
+                    <button class="segment-btn" id="s-35" onclick="setMaxSpeed(35)">35km/h</button>
+                    <button class="segment-btn" id="s-45" onclick="setMaxSpeed(45)">45km/h</button>
+                    <button class="segment-btn" id="s-55" onclick="setMaxSpeed(55)">55km/h</button>
+                    <button class="segment-btn" id="s-custom" onclick="enableCustomSpeed()">自定义</button>
+                </div>
+                <input type="number" class="veh-input" id="input-speed" inputmode="numeric" min="1" max="120" placeholder="输入 km/h，如 40" style="display:none;" onchange="onCustomSpeedInput()">
+            </div>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-title">铅酸电池 30% 保护</div>
+                    <div class="setting-desc" id="protect-desc">开启: 只用 70% 电量，寿命更长久</div>
+                </div>
+                <label class="ios-switch">
+                    <input type="checkbox" id="protect-switch" onchange="toggleProtect(this)">
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+            <div class="setting-row">
+                <div>
+                    <div class="setting-title">电池设计寿命 (km)</div>
+                    <div class="setting-desc">铅酸一般 10000~15000，锂电 30000+</div>
+                </div>
+                <input type="number" class="veh-input" id="input-life" inputmode="numeric" min="100" step="500" placeholder="如 12000" onchange="onVehicleNumberInput('designLifeKm','input-life')">
+            </div>
+        </div>
+
+        <label>📊 续航计算</label>
+        <div class="setting-group">
+            <div class="setting-row" style="flex-direction:column;align-items:stretch;">
+                <label>计算结果</label>
+                <div class="range-result-box">
+                    <span class="range-num" id="range-num">--</span>
+                    <span class="range-unit"> km 满电续航</span>
+                    <div class="range-formula" id="range-formula">--</div>
+                </div>
+            </div>
+        </div>
+
+        <label style="margin-top:4px;">🔧 维保记录</label>
+        <div class="setting-group">
+            <div class="setting-row" style="flex-direction:column;align-items:stretch;">
+                <label>🔋 电池剩余寿命</label>
+                <div class="life-big-num" id="life-remain">-- km</div>
+                <div class="life-sub-text" id="life-detail">记录电池更换后开始统计</div>
+                <div class="bar" style="margin:2px 0 10px;">
+                    <div class="bar-cell" id="lifebar1"></div>
+                    <div class="bar-cell" id="lifebar2"></div>
+                    <div class="bar-cell" id="lifebar3"></div>
+                    <div class="bar-cell" id="lifebar4"></div>
+                    <div class="bar-cell" id="lifebar5"></div>
+                </div>
+                <button class="main-btn calc" onclick="openRecordModal('battery')">记录电池更换</button>
+            </div>
+        </div>
+
+        <div class="setting-group" id="rec-cards"></div>
+        <div class="version-tag" style="margin-top:15px;">💡 换件后记得把主页里程表拨到当前公里数</div>
     </div>
 
     <div id="page-history" class="page">
@@ -1032,12 +1187,15 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
             </div>
         </div>
 
-        <div class="version-tag">Version 1.8.0</div>
+        <div class="version-tag">Version 1.9.0</div>
     </div>
 
     <nav class="tab-bar">
         <div class="tab-item active" id="tab-assistant" onclick="switchTab('assistant')">
             <span class="icon">⚡</span><span>助手</span>
+        </div>
+        <div class="tab-item" id="tab-vehicle" onclick="switchTab('vehicle')">
+            <span class="icon">🛵</span><span>车辆</span>
         </div>
         <div class="tab-item" id="tab-history" onclick="switchTab('history')">
             <span class="icon">📜</span><span>历史</span>
@@ -1046,6 +1204,24 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
             <span class="icon">⚙️</span><span>设置</span>
         </div>
     </nav>
+</div>
+
+<div id="recordModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title" id="recordModalTitle">记录更换</div>
+        <div class="record-input-row">
+            <label>更换日期</label>
+            <input type="date" id="recordDate">
+        </div>
+        <div class="record-input-row">
+            <label>当时公里数</label>
+            <input type="number" id="recordOdo" inputmode="numeric" min="0">
+        </div>
+        <div class="modal-btns">
+            <button class="modal-btn btn-confirm" onclick="saveRecord()">保存</button>
+            <button class="modal-btn btn-cancel" onclick="closeRecordModal()">取消</button>
+        </div>
+    </div>
 </div>
 
 <div id="confirmModal" class="modal-overlay">
@@ -1074,7 +1250,60 @@ input:checked + .switch-slider:before { transform: translateX(20px); }
 // ======================================================= -->
 //        【模块六：JS - 全局状态初始化与偏好设置逻辑】        -->
 // ======================================================= -->
-let MAX = Number(localStorage.getItem("maxRange")) || 60;
+// v1.9.0 车辆参数：能耗按 Wh/km 为主，支持 Ah/km 单位切换；旧数据自动反推能耗保证续航连续
+const SPEED_POINTS = [[25, 1.0], [35, 1.1], [45, 1.25], [55, 1.45]];
+const CHARGE_EFF = 0.9; // 充电效率（铅酸约 0.85~0.95）
+
+// 速度→能耗系数：档内线性插值，超档外推，25以下按1.0
+function getSpeedFactor(s) {
+    if (s <= 25) return 1.0;
+    for (let i = 0; i < SPEED_POINTS.length - 1; i++) {
+        let x0 = SPEED_POINTS[i][0], y0 = SPEED_POINTS[i][1];
+        let x1 = SPEED_POINTS[i + 1][0], y1 = SPEED_POINTS[i + 1][1];
+        if (s <= x1) return Math.round((y0 + (y1 - y0) * (s - x0) / (x1 - x0)) * 100) / 100;
+    }
+    let n = SPEED_POINTS.length;
+    let k = (SPEED_POINTS[n - 1][1] - SPEED_POINTS[n - 2][1]) / (SPEED_POINTS[n - 1][0] - SPEED_POINTS[n - 2][0]);
+    return Math.round((SPEED_POINTS[n - 1][1] + k * (s - SPEED_POINTS[n - 1][0])) * 100) / 100;
+}
+
+let vehicle = JSON.parse(localStorage.getItem("vehicle") || "null");
+if (!vehicle) {
+    let oldMax = Number(localStorage.getItem("maxRange")) || 60;
+    vehicle = {
+        batteryV: 48, batteryAh: 20,
+        consumption: Math.round((48 * 20 * 0.7 / oldMax) * 10) / 10,
+        consumptionUnit: 'wh', maxSpeed: 25,
+        protect30: true, designLifeKm: 12000
+    };
+}
+let records = JSON.parse(localStorage.getItem("records") || "null") || { battery: null, tire: null, brakeF: null, brakeR: null };
+const RECORD_TYPES = {
+    tire:   { icon: '🛞', name: '轮胎' },
+    brakeF: { icon: '🛵', name: '前刹车碟' },
+    brakeR: { icon: '🛵', name: '后刹车碟' }
+};
+let editingRecordType = null;
+
+function getProtectFactor() { return vehicle.protect30 ? 0.7 : 1.0; }
+function getWhPerKm() {
+    if (vehicle.consumptionUnit === 'ah') return vehicle.consumption * vehicle.batteryV;
+    return vehicle.consumption;
+}
+// 满电续航 = V × Ah × 保护系数 ÷ (能耗 × 速度系数)
+function computeMaxRange() {
+    let whKm = getWhPerKm() * getSpeedFactor(vehicle.maxSpeed);
+    if (whKm <= 0) return 60;
+    return Math.round((vehicle.batteryV * vehicle.batteryAh * getProtectFactor() / whKm) * 10) / 10;
+}
+// 充电每小时回血 km = 功率 × 充电效率 × 保护系数 ÷ 基础能耗（停车充电不计速度系数）
+function kmPerChargeHour() {
+    let whKm = getWhPerKm();
+    if (whKm <= 0) return 0;
+    return (chargePower * CHARGE_EFF * getProtectFactor()) / whKm;
+}
+
+let MAX = computeMaxRange();
 let lastOdo = localStorage.getItem("lastOdo") ? Number(localStorage.getItem("lastOdo")) : null;
 let remain = localStorage.getItem("remain") ? Number(localStorage.getItem("remain")) : MAX;
 let historyLog = JSON.parse(localStorage.getItem("historyLog") || "[]");
@@ -1097,6 +1326,10 @@ function switchTab(targetPage) {
     document.getElementById(`tab-${targetPage}`).classList.add('active');
     if(targetPage === 'history') {
         calculateStats();
+    }
+    if(targetPage === 'vehicle') {
+        updateVehicleUI();
+        renderRecords();
     }
 }
 
@@ -1209,7 +1442,7 @@ function updateSettingUI() {
         let btn = document.getElementById(`p-${w}`);
         if(btn) btn.classList.toggle('active', chargePower === w);
     });
-    let recoveredKm = (chargePower / 200) * 10;
+    let recoveredKm = kmPerChargeHour().toFixed(1);
     document.getElementById("power-desc").innerText = `当前: ${chargePower}W (每小时回复${recoveredKm}km)`;
 
     [5, 6, 7].forEach(l => {
@@ -1228,8 +1461,148 @@ function updateSettingUI() {
 }
 
 // 数据持久化缓存
-function save() { localStorage.setItem("lastOdo", lastOdo ?? ""); localStorage.setItem("remain", remain); localStorage.setItem("maxRange", MAX); localStorage.setItem("historyLog", JSON.stringify(historyLog)); }
+function save() { localStorage.setItem("lastOdo", lastOdo ?? ""); localStorage.setItem("remain", remain); localStorage.setItem("maxRange", MAX); localStorage.setItem("historyLog", JSON.stringify(historyLog)); localStorage.setItem("vehicle", JSON.stringify(vehicle)); localStorage.setItem("records", JSON.stringify(records)); }
 function updateLastOdo() { let found = historyLog.find(log => log.type === 'calc' && log.odo); lastOdo = found ? found.odo : null; }
+
+// ============ v1.9.0 车辆参数逻辑 ============
+function recalcMax() {
+    let oldMax = MAX || 1;
+    MAX = computeMaxRange();
+    remain = Math.min(MAX, remain * (MAX / oldMax)); // 按电量百分比等比换算，充电进度不丢
+    save(); render();
+}
+function onVehicleChanged() { recalcMax(); updateVehicleUI(); }
+function setBatteryV(v) { vehicle.batteryV = v; onVehicleChanged(); }
+function setConsumptionUnit(u) { vehicle.consumptionUnit = u; onVehicleChanged(); }
+function setMaxSpeed(s) { vehicle.maxSpeed = s; vehicle.speedCustom = false; onVehicleChanged(); }
+function enableCustomSpeed() {
+    vehicle.speedCustom = true;
+    if ([25, 35, 45, 55].includes(vehicle.maxSpeed)) vehicle.maxSpeed = 40;
+    onVehicleChanged();
+}
+function onCustomSpeedInput() {
+    let v = Number(document.getElementById("input-speed").value);
+    if (isNaN(v) || v <= 0) return;
+    vehicle.maxSpeed = Math.min(Math.round(v), 120);
+    vehicle.speedCustom = true;
+    onVehicleChanged();
+}
+function toggleProtect(el) { vehicle.protect30 = el.checked; onVehicleChanged(); }
+function onVehicleNumberInput(field, inputId) {
+    let v = Number(document.getElementById(inputId).value);
+    if (isNaN(v) || v <= 0) return;
+    vehicle[field] = v;
+    onVehicleChanged();
+}
+function updateVehicleUI() {
+    [36, 48, 60, 72].forEach(v => {
+        let b = document.getElementById(`v-${v}`);
+        if (b) b.classList.toggle('active', vehicle.batteryV === v);
+    });
+    let vd = document.getElementById("v-desc");
+    if (vd) vd.innerText = `当前: ${vehicle.batteryV}V`;
+    let ah = document.getElementById("input-ah");
+    if (ah && ah.value !== String(vehicle.batteryAh)) ah.value = vehicle.batteryAh;
+    let cons = document.getElementById("input-cons");
+    if (cons && cons.value !== String(vehicle.consumption)) cons.value = vehicle.consumption;
+    let life = document.getElementById("input-life");
+    if (life && life.value !== String(vehicle.designLifeKm)) life.value = vehicle.designLifeKm;
+    ['wh', 'ah'].forEach(u => {
+        let b = document.getElementById(`unit-${u}`);
+        if (b) b.classList.toggle('active', vehicle.consumptionUnit === u);
+    });
+    let customSpeed = !!vehicle.speedCustom;
+    [25, 35, 45, 55].forEach(s => {
+        let b = document.getElementById(`s-${s}`);
+        if (b) b.classList.toggle('active', !customSpeed && vehicle.maxSpeed === s);
+    });
+    let sc = document.getElementById("s-custom");
+    if (sc) sc.classList.toggle('active', customSpeed);
+    let sp = document.getElementById("input-speed");
+    if (sp) {
+        sp.style.display = customSpeed ? 'block' : 'none';
+        if (sp.value !== String(vehicle.maxSpeed)) sp.value = vehicle.maxSpeed;
+    }
+    let sd = document.getElementById("speed-desc");
+    if (sd) sd.innerText = `当前: ${vehicle.maxSpeed}km/h · 能耗系数 ${getSpeedFactor(vehicle.maxSpeed)}`;
+    let sw = document.getElementById("protect-switch");
+    if (sw) sw.checked = !!vehicle.protect30;
+    let pd = document.getElementById("protect-desc");
+    if (pd) pd.innerText = vehicle.protect30 ? "开启: 只用 70% 电量，寿命更长久" : "关闭: 用尽 100% 电量，续航拉满";
+    let rn = document.getElementById("range-num");
+    if (rn) rn.innerText = MAX;
+    let rf = document.getElementById("range-formula");
+    if (rf) rf.innerText = `${vehicle.batteryV}V × ${vehicle.batteryAh}Ah × ${vehicle.protect30 ? '70%' : '100%'} ÷ (${getWhPerKm().toFixed(1)}Wh/km × 速度系数${getSpeedFactor(vehicle.maxSpeed)})`;
+}
+
+// ============ v1.9.0 维保记录逻辑 ============
+// 电池已骑 km：换过电池从更换时公里数起算，没换过按整车里程估算
+function batteryUsedKm() {
+    let base = records.battery ? Number(records.battery.odo) : 0;
+    return Math.max(0, currentOdoRollerVal - base);
+}
+function batteryLifeRemain() {
+    return Math.max(0, (vehicle.designLifeKm || 0) - batteryUsedKm());
+}
+function renderRecords() {
+    let life = batteryLifeRemain();
+    let used = batteryUsedKm();
+    let lr = document.getElementById("life-remain");
+    if (lr) lr.innerText = life.toFixed(0) + " km";
+    let ld = document.getElementById("life-detail");
+    if (ld) ld.innerText = records.battery
+        ? `已骑 ${used.toFixed(0)} km / 设计寿命 ${vehicle.designLifeKm} km`
+        : `未记录过换电池 · 按整车里程 ${used.toFixed(0)} km 估算`;
+    let pct = vehicle.designLifeKm > 0 ? Math.max(0, Math.min(100, (life / vehicle.designLifeKm) * 100)) : 0;
+    let filled = Math.round(pct / 20);
+    if (filled === 0 && pct > 0) filled = 1;
+    let color = pct > 40 ? "green" : (pct > 20 ? "yellow" : "red");
+    for (let i = 1; i <= 5; i++) {
+        let c = document.getElementById("lifebar" + i);
+        if (c) c.className = i <= filled ? "bar-cell filled " + color : "bar-cell empty";
+    }
+    let cards = document.getElementById("rec-cards");
+    if (cards) {
+        let html = "";
+        ["tire", "brakeF", "brakeR"].forEach(t => {
+            let r = records[t];
+            let meta = RECORD_TYPES[t];
+            let desc = r ? `${r.date} 更换 · 当时 ${r.odo} km` : "尚未记录";
+            html += `<div class="setting-row">
+                <div>
+                    <div class="setting-title">${meta.icon} ${meta.name}</div>
+                    <div class="setting-desc">${desc}</div>
+                </div>
+                <button class="data-btn import" onclick="openRecordModal('${t}')">记录更换</button>
+            </div>`;
+        });
+        cards.innerHTML = html;
+    }
+    let blt = document.getElementById("batteryLifeText");
+    if (blt) blt.innerText = life.toFixed(0) + " km";
+}
+function openRecordModal(type) {
+    editingRecordType = type;
+    let meta = type === 'battery' ? { name: '电池' } : RECORD_TYPES[type];
+    document.getElementById("recordModalTitle").innerText = `记录${meta.name}更换`;
+    let today = new Date();
+    document.getElementById("recordDate").value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    document.getElementById("recordOdo").value = currentOdoRollerVal;
+    document.getElementById("recordModal").style.display = "flex";
+}
+function closeRecordModal() { document.getElementById("recordModal").style.display = "none"; editingRecordType = null; }
+function saveRecord() {
+    if (!editingRecordType) return;
+    let date = document.getElementById("recordDate").value;
+    let odo = Number(document.getElementById("recordOdo").value);
+    if (!date || isNaN(odo) || odo < 0) {
+        openConfirmModal("提示", "请填写有效的日期和公里数。", null);
+        return;
+    }
+    records[editingRecordType] = { date: date, odo: Math.round(odo) };
+    save(); renderRecords(); render();
+    closeRecordModal();
+}
 
 
 // ======================================================= -->
@@ -1526,6 +1899,8 @@ function render() {
         </div>`;
     }
     document.getElementById("historyList").innerHTML = listHtml;
+    updateVehicleUI();
+    renderRecords();
     if(document.getElementById("page-history").classList.contains("active")) { calculateStats(); }
 }
 
@@ -1552,7 +1927,7 @@ function calc() {
     }
     
     if (hour > 0) {
-        let recoveredPerHours = (chargePower / 200) * 10;
+        let recoveredPerHours = kmPerChargeHour();
         remain += hour * recoveredPerHours;
     }
     
@@ -1655,7 +2030,7 @@ function deleteFromFullHistory(id) {
 // 数据导出
 function exportData() {
     let data = {
-        version: "1.7.0",
+        version: "1.9.0",
         exportTime: new Date().toISOString(),
         maxRange: MAX,
         lastOdo: lastOdo,
@@ -1664,7 +2039,9 @@ function exportData() {
         currentOdoRollerVal: currentOdoRollerVal,
         chargePower: chargePower,
         odoLength: odoLength,
-        themeMode: themeMode
+        themeMode: themeMode,
+        vehicle: vehicle,
+        records: records
     };
     let json = JSON.stringify(data, null, 2);
     let blob = new Blob([json], { type: "application/json" });
@@ -1694,9 +2071,12 @@ function importData(event) {
             }
             openConfirmModal("确认导入", `导入将替换当前所有数据（文件导出时间：${data.exportTime ? new Date(data.exportTime).toLocaleString('zh-CN') : '未知'}）。确定要导入吗？`, () => {
                 localStorage.clear();
-                MAX = Number(data.maxRange) || 60;
+                let importedMax = Number(data.maxRange) || 60;
+                vehicle = data.vehicle || { batteryV: 48, batteryAh: 20, consumption: Math.round((48 * 20 * 0.7 / importedMax) * 10) / 10, consumptionUnit: 'wh', maxSpeed: 25, protect30: true, designLifeKm: 12000 };
+                records = data.records || { battery: null, tire: null, brakeF: null, brakeR: null };
+                MAX = computeMaxRange();
                 lastOdo = data.lastOdo != null ? Number(data.lastOdo) : null;
-                remain = Number(data.remain) || MAX;
+                remain = Math.min(Number(data.remain) || MAX, MAX);
                 historyLog = data.historyLog || [];
                 currentOdoRollerVal = Number(data.currentOdoRollerVal) || 0;
                 chargePower = Number(data.chargePower) || 200;
@@ -1710,6 +2090,8 @@ function importData(event) {
                 localStorage.setItem("chargePower", chargePower);
                 localStorage.setItem("odoLength", odoLength);
                 localStorage.setItem("themeMode", themeMode);
+                localStorage.setItem("vehicle", JSON.stringify(vehicle));
+                localStorage.setItem("records", JSON.stringify(records));
                 // 导入完成后刷新页面，确保所有数据与UI彻底同步
                 location.reload();
             });
@@ -1725,7 +2107,9 @@ function importData(event) {
 function confirmReset() { 
     localStorage.clear(); 
     lastOdo = null; 
-    MAX = 60; 
+    vehicle = { batteryV: 48, batteryAh: 20, consumption: 13, consumptionUnit: 'wh', maxSpeed: 25, protect30: true, designLifeKm: 12000 };
+    records = { battery: null, tire: null, brakeF: null, brakeR: null };
+    MAX = computeMaxRange();
     remain = MAX; 
     historyLog = []; 
     currentOdoRollerVal = 0;
@@ -1739,10 +2123,7 @@ function confirmReset() {
     render(); 
 }
 
-// 修改总续航上限上限逻辑
-function startEdit() { document.getElementById("remain").style.display = "none"; document.getElementById("setBtn").style.display = "none"; document.getElementById("editBox").style.display = "flex"; document.getElementById("maxInput").value = MAX; }
-function cancelEdit() { document.getElementById("editBox").style.display = "none"; document.getElementById("remain").style.display = "block"; document.getElementById("setBtn").style.display = "flex"; }
-function saveMax() { let v = Number(document.getElementById("maxInput").value); if(v > 0) { MAX = v; remain = v; historyLog.unshift({ id: Date.now().toString(), time: `${new Date().getMonth()+1}-${new Date().getDate()} ${String(new Date().getHours()).padStart(2,'0')}:${String(new Date().getMinutes()).padStart(2,'0')}`, type: 'edit', remain: MAX }); save(); render(); } cancelEdit(); }
+// v1.9.0 起满电续航由车辆参数页计算，旧的 ⚙️ 手填入口已移除（保留历史记录中"修改总续航"旧数据的渲染）
 
 
 
